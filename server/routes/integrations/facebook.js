@@ -100,7 +100,9 @@ async function generateChatbotReply(userText) {
       model: "claude-3-sonnet-20240229",
       options: {
         maxTokens: 500,
-        temperature: 0.5,
+        temperature: 0.65,
+        channel: "facebook",
+        multilingual: true,
       },
     }),
   });

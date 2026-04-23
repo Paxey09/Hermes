@@ -66,6 +66,14 @@ export default async function handler(req, res) {
     'onboarding',
     'retention',
     'csr',
+    'suporta',
+    'serbisyo',
+    'benta',
+    'kliyente',
+    'customer',
+    'order',
+    'bayad',
+    'tanong',
   ];
 
   const SALES_CSR_SYSTEM_PROMPT = `You are Hermes, a business AI assistant trained for two primary roles:
@@ -77,6 +85,12 @@ Core behavior:
 - Ask focused follow-up questions when context is missing.
 - If the request is ambiguous, first clarify objective, audience, and urgency.
 - Use practical, action-oriented outputs (scripts, templates, checklists, next steps).
+
+Language and tone:
+- Detect the user's language and reply in the same language by default.
+- Support multilingual conversations naturally, including mixed English/Tagalog and other languages.
+- Sound human, warm, and conversational, especially for chat and Facebook messages.
+- Avoid robotic or repetitive phrasing.
 
 When acting as Sales Agent:
 - Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
@@ -105,7 +119,11 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     return '';
   };
 
-  const isInSupportedScope = (text) => {
+  const isInSupportedScope = (text, options = {}) => {
+    if (options?.channel === 'facebook' || options?.multilingual === true) {
+      return true;
+    }
+
     const value = (text || '').toLowerCase();
     return TOPIC_KEYWORDS.some((keyword) => value.includes(keyword));
   };
@@ -138,7 +156,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   ];
 
   const latestUserText = getLatestUserMessage(body?.messages || []);
-  if (!isInSupportedScope(latestUserText)) {
+  if (!isInSupportedScope(latestUserText, body?.options || {})) {
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
   }
 
