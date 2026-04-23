@@ -6,7 +6,7 @@ function Client_HermesChatbot() {
     {
       id: 1,
       role: 'assistant',
-      text: 'Hi! I am Hermes. I can help with CRM, ERP, appointment booking, data analytics & market research, and email marketing.'
+      text: 'Hi! I am Hermes. I can support you as a Sales Agent and Customer Service Representative (CSR), plus help with CRM, ERP, appointment booking, data analytics & market research, and email marketing.'
     }
   ]);
   const [input, setInput] = useState('');

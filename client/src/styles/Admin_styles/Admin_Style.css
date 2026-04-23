@@ -872,6 +872,297 @@
     }
   }
 
+/*========================================== FACEBOOK CONNECT ==========================================*/
+  .fb-connect-page {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .fb-connect-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #f5f0e8;
+  }
+
+  .fb-connect-header p {
+    margin: 0.35rem 0 0;
+    color: rgba(245, 240, 232, 0.7);
+    font-size: 0.9rem;
+  }
+
+  .fb-connect-status-card,
+  .fb-connect-form,
+  .fb-connected-pages-card {
+    background: #121826;
+    border: 1px solid #1e2535;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .fb-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .fb-status-label {
+    color: rgba(245, 240, 232, 0.8);
+    font-size: 0.9rem;
+  }
+
+  .fb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .fb-status-badge.connected {
+    background: rgba(76, 175, 80, 0.18);
+    color: #4caf50;
+  }
+
+  .fb-status-badge.disconnected {
+    background: rgba(255, 107, 107, 0.15);
+    color: #ff6b6b;
+  }
+
+  .fb-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    color: #f5f0e8;
+    margin-bottom: 0.75rem;
+    overflow-wrap: anywhere;
+  }
+
+  .fb-status-note {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: rgba(245, 240, 232, 0.65);
+  }
+
+  .fb-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .fb-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: rgba(245, 240, 232, 0.85);
+    font-size: 0.85rem;
+  }
+
+  .fb-form-grid input {
+    border-radius: 8px;
+    border: 1px solid #2b3550;
+    background: #0f1524;
+    color: #f5f0e8;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .fb-form-grid input:focus {
+    outline: none;
+    border-color: #1877f2;
+    box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.25);
+  }
+
+  .fb-connect-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .fb-feedback {
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+
+  .fb-feedback.error {
+    background: rgba(255, 107, 107, 0.14);
+    border: 1px solid rgba(255, 107, 107, 0.35);
+    color: #ff6b6b;
+  }
+
+  .fb-feedback.success {
+    background: rgba(76, 175, 80, 0.14);
+    border: 1px solid rgba(76, 175, 80, 0.35);
+    color: #4caf50;
+  }
+
+  .fb-btn-secondary {
+    background: transparent;
+    border: 1px solid #2b3550;
+    color: #f5f0e8;
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .fb-btn-secondary:hover:not(:disabled) {
+    border-color: #1877f2;
+    color: #1877f2;
+  }
+
+  .fb-btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .fb-connected-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .fb-connected-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #f5f0e8;
+  }
+
+  .fb-connected-header p {
+    margin: 0.2rem 0 0;
+    color: rgba(245, 240, 232, 0.65);
+    font-size: 0.85rem;
+  }
+
+  .fb-page-row {
+    display: grid;
+    grid-template-columns: 56px minmax(180px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr);
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .fb-page-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7a34a, #ffcf7a);
+    color: #121826;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .fb-page-main {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .fb-page-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f5f0e8;
+  }
+
+  .fb-page-id {
+    font-size: 0.8rem;
+    color: rgba(245, 240, 232, 0.6);
+  }
+
+  .fb-page-subscription,
+  .fb-page-token {
+    display: grid;
+    gap: 0.35rem;
+    color: #f5f0e8;
+    font-size: 0.9rem;
+  }
+
+  .fb-page-column-label {
+    color: rgba(245, 240, 232, 0.55);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .fb-token-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .fb-token-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    background: #ececec;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .fb-token-btn:hover {
+    background: #ffffff;
+  }
+
+  .fb-token-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: rgba(245, 240, 232, 0.8);
+    font-size: 0.85rem;
+  }
+
+  .fb-empty-state {
+    padding: 1rem;
+    border-radius: 10px;
+    border: 1px dashed rgba(245, 240, 232, 0.18);
+    color: rgba(245, 240, 232, 0.7);
+  }
+
+  .fb-empty-state p {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .fb-empty-state span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .fb-helper-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .fb-helper-item {
+    background: #121826;
+    border: 1px solid #1e2535;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+  }
+
+  .fb-helper-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.45rem;
+    color: #f5f0e8;
+    overflow-wrap: anywhere;
+  }
+
 /*========================================== CRM MODULE ==========================================*/
   .crm-header,
   .erp-header,

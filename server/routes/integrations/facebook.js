@@ -4,9 +4,47 @@ const express = require("express");
 const router = express.Router();
 
 const FB_GRAPH_API_BASE = "https://graph.facebook.com/v22.0";
+const fbRuntimeConfig = {
+  pageId: "",
+  pageName: "",
+  pageAccessToken: "",
+  verifyToken: "",
+  appSecret: "",
+};
+
+function getFacebookConfig() {
+  return {
+    pageId: fbRuntimeConfig.pageId || process.env.FB_PAGE_ID || "",
+    pageName: fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "",
+    pageAccessToken: fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+    verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
+    appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
+  };
+}
+
+function saveRuntimeConfig(payload = {}) {
+  if (typeof payload.pageId === "string") fbRuntimeConfig.pageId = payload.pageId.trim();
+  if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = payload.pageName.trim();
+  if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = payload.pageAccessToken.trim();
+  if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = payload.verifyToken.trim();
+  if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = payload.appSecret.trim();
+}
+
+function getPublicBaseUrl(req) {
+  const configured =
+    process.env.PUBLIC_BASE_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+
+  return `${req.protocol}://${req.get("host")}`;
+}
 
 function verifyFacebookSignature(req) {
-  const appSecret = process.env.FB_APP_SECRET;
+  const appSecret = getFacebookConfig().appSecret;
   if (!appSecret) {
     return true;
   }
@@ -76,7 +114,7 @@ async function generateChatbotReply(userText) {
 }
 
 async function sendFacebookMessage(recipientId, text) {
-  const pageAccessToken = process.env.FB_PAGE_ACCESS_TOKEN;
+  const pageAccessToken = getFacebookConfig().pageAccessToken;
 
   if (!pageAccessToken) {
     throw new Error("Missing FB_PAGE_ACCESS_TOKEN in server environment");
@@ -108,7 +146,7 @@ router.get("/", (req, res) => {
   const token = req.query["hub.verify_token"] || req.query.hub_verify_token;
   const challenge = req.query["hub.challenge"] || req.query.hub_challenge;
 
-  const expectedToken = (process.env.FB_VERIFY_TOKEN || "").trim();
+  const expectedToken = (getFacebookConfig().verifyToken || "").trim();
   const receivedToken = typeof token === "string" ? token.trim() : token;
 
   if (mode === "subscribe" && receivedToken && receivedToken === expectedToken) {
@@ -123,6 +161,52 @@ router.get("/", (req, res) => {
   });
 
   return res.sendStatus(403);
+});
+
+router.get("/admin/status", (req, res) => {
+  const config = getFacebookConfig();
+  const baseUrl = getPublicBaseUrl(req);
+
+  res.status(200).json({
+    connected: Boolean(config.pageAccessToken && config.verifyToken),
+    pageId: config.pageId || null,
+    pageName: config.pageName || null,
+    hasPageAccessToken: Boolean(config.pageAccessToken),
+    hasVerifyToken: Boolean(config.verifyToken),
+    hasAppSecret: Boolean(config.appSecret),
+    verifyToken: config.verifyToken || null,
+    pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
+    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    note: "Credentials set from this panel are runtime-only. Add them to environment variables for persistence.",
+  });
+});
+
+router.post("/admin/connect", (req, res) => {
+  const { pageId, pageName, pageAccessToken, verifyToken, appSecret } = req.body || {};
+
+  if (!pageAccessToken || !verifyToken) {
+    return res.status(400).json({
+      error: "pageAccessToken and verifyToken are required",
+    });
+  }
+
+  saveRuntimeConfig({ pageId, pageName, pageAccessToken, verifyToken, appSecret });
+  const config = getFacebookConfig();
+  const baseUrl = getPublicBaseUrl(req);
+
+  return res.status(200).json({
+    success: true,
+    connected: Boolean(config.pageAccessToken && config.verifyToken),
+    pageId: config.pageId || null,
+    pageName: config.pageName || null,
+    hasPageAccessToken: Boolean(config.pageAccessToken),
+    hasVerifyToken: Boolean(config.verifyToken),
+    hasAppSecret: Boolean(config.appSecret),
+    verifyToken: config.verifyToken || null,
+    pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
+    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    note: "Connection saved for current runtime. Add FB_* env vars to keep this after restart/redeploy.",
+  });
 });
 
 router.post("/", async (req, res) => {

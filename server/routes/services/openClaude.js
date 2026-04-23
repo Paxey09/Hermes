@@ -16,6 +16,8 @@ const SUPPORTED_TOPICS = [
   "Appointment Booking",
   "Data Analytics & Market Research",
   "Email Marketing",
+  "Sales",
+  "Customer Service",
 ];
 
 const TOPIC_KEYWORDS = [
@@ -23,6 +25,17 @@ const TOPIC_KEYWORDS = [
   "customer relationship",
   "lead",
   "sales pipeline",
+  "sales",
+  "selling",
+  "upsell",
+  "cross-sell",
+  "proposal",
+  "quotation",
+  "quote",
+  "pricing",
+  "negotiation",
+  "deal",
+  "conversion",
   "erp",
   "enterprise resource planning",
   "inventory",
@@ -39,7 +52,46 @@ const TOPIC_KEYWORDS = [
   "newsletter",
   "campaign",
   "email campaign",
+  "customer support",
+  "customer service",
+  "service request",
+  "complaint",
+  "ticket",
+  "refund",
+  "billing",
+  "subscription",
+  "onboarding",
+  "retention",
+  "csr",
 ];
+
+const SALES_CSR_SYSTEM_PROMPT = `You are Hermes, a business AI assistant trained for two primary roles:
+1) Sales Agent
+2) Customer Service Representative (CSR)
+
+Core behavior:
+- Be clear, concise, and professional.
+- Ask focused follow-up questions when context is missing.
+- If the request is ambiguous, first clarify objective, audience, and urgency.
+- Use practical, action-oriented outputs (scripts, templates, checklists, next steps).
+
+When acting as Sales Agent:
+- Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
+- Recommend upsell/cross-sell options only when they genuinely fit customer needs.
+- Prioritize value, trust, and long-term relationships over aggressive tactics.
+
+When acting as CSR:
+- Show empathy and acknowledge customer concerns.
+- De-escalate frustration, apologize when appropriate, and provide clear resolution steps.
+- Collect required details efficiently and provide realistic timelines.
+- Offer alternatives or escalation paths when immediate resolution is not possible.
+
+Response format preference:
+- Start with a direct answer.
+- Follow with short bullets for steps/actions.
+- End with one concise follow-up question when needed.
+
+Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
 
 function getLatestUserMessage(messages = []) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -79,12 +131,19 @@ function normalizeMessages(messages = []) {
   }));
 }
 
+function buildPromptedMessages(messages = []) {
+  return [
+    { role: "system", content: SALES_CSR_SYSTEM_PROMPT },
+    ...normalizeMessages(messages),
+  ];
+}
+
 async function callViaOpenRouter({ messages, model, options, apiKey }) {
   const mappedModel = OPENROUTER_MODEL_MAP[model] || model || "anthropic/claude-3.5-sonnet";
 
   const buildPayload = (selectedModel) => ({
     model: selectedModel,
-    messages: normalizeMessages(messages),
+    messages: buildPromptedMessages(messages),
     max_tokens: options?.maxTokens || 1024,
     temperature: options?.temperature ?? 0.7,
   });
@@ -168,7 +227,7 @@ async function callOpenClaude({ messages, model, options }) {
     model: model || "claude-3-sonnet-20240229",
     max_tokens: options?.maxTokens || 1024,
     temperature: options?.temperature ?? 0.7,
-    messages: normalizeMessages(messages),
+    messages: buildPromptedMessages(messages),
   };
 
   if (apiKey.startsWith("sk-or-v1-")) {

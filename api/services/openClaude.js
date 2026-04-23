@@ -19,6 +19,8 @@ export default async function handler(req, res) {
     'Appointment Booking',
     'Data Analytics & Market Research',
     'Email Marketing',
+    'Sales',
+    'Customer Service',
   ];
 
   const TOPIC_KEYWORDS = [
@@ -26,6 +28,17 @@ export default async function handler(req, res) {
     'customer relationship',
     'lead',
     'sales pipeline',
+    'sales',
+    'selling',
+    'upsell',
+    'cross-sell',
+    'proposal',
+    'quotation',
+    'quote',
+    'pricing',
+    'negotiation',
+    'deal',
+    'conversion',
     'erp',
     'enterprise resource planning',
     'inventory',
@@ -42,7 +55,46 @@ export default async function handler(req, res) {
     'newsletter',
     'campaign',
     'email campaign',
+    'customer support',
+    'customer service',
+    'service request',
+    'complaint',
+    'ticket',
+    'refund',
+    'billing',
+    'subscription',
+    'onboarding',
+    'retention',
+    'csr',
   ];
+
+  const SALES_CSR_SYSTEM_PROMPT = `You are Hermes, a business AI assistant trained for two primary roles:
+1) Sales Agent
+2) Customer Service Representative (CSR)
+
+Core behavior:
+- Be clear, concise, and professional.
+- Ask focused follow-up questions when context is missing.
+- If the request is ambiguous, first clarify objective, audience, and urgency.
+- Use practical, action-oriented outputs (scripts, templates, checklists, next steps).
+
+When acting as Sales Agent:
+- Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
+- Recommend upsell/cross-sell options only when they genuinely fit customer needs.
+- Prioritize value, trust, and long-term relationships over aggressive tactics.
+
+When acting as CSR:
+- Show empathy and acknowledge customer concerns.
+- De-escalate frustration, apologize when appropriate, and provide clear resolution steps.
+- Collect required details efficiently and provide realistic timelines.
+- Offer alternatives or escalation paths when immediate resolution is not possible.
+
+Response format preference:
+- Start with a direct answer.
+- Follow with short bullets for steps/actions.
+- End with one concise follow-up question when needed.
+
+Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
 
   const getLatestUserMessage = (messages = []) => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -74,6 +126,17 @@ export default async function handler(req, res) {
   });
 
   const { endpoint, ...body } = req.body;
+
+  const normalizeMessages = (messages = []) => messages.map((m) => ({
+    role: m.role,
+    content: typeof m.content === 'string' ? m.content : String(m.content || ''),
+  }));
+
+  const buildPromptedMessages = (messages = []) => [
+    { role: 'system', content: SALES_CSR_SYSTEM_PROMPT },
+    ...normalizeMessages(messages),
+  ];
+
   const latestUserText = getLatestUserMessage(body?.messages || []);
   if (!isInSupportedScope(latestUserText)) {
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
@@ -111,12 +174,14 @@ export default async function handler(req, res) {
 
     const openRouterPayload = {
       model: mappedModel || 'anthropic/claude-3.5-sonnet',
-      messages: (body?.messages || []).map((m) => ({
-        role: m.role,
-        content: typeof m.content === 'string' ? m.content : String(m.content || ''),
-      })),
+      messages: buildPromptedMessages(body?.messages || []),
       max_tokens: body?.max_tokens || 1024,
       temperature: body?.temperature ?? 0.7,
+    };
+
+    const anthropicPayload = {
+      ...body,
+      messages: buildPromptedMessages(body?.messages || []),
     };
 
     const runRequest = async (payload) => fetch(targetUrl, {
@@ -133,7 +198,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload),
     });
 
-    let response = await runRequest(useOpenRouter ? openRouterPayload : body);
+    let response = await runRequest(useOpenRouter ? openRouterPayload : anthropicPayload);
     let data = await response.json();
 
     if (useOpenRouter && !response.ok && response.status === 404) {

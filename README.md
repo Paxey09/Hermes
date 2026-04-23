@@ -1,6 +1,6 @@
 # Hermes 1.0
 
-A comprehensive business management system with AI-powered features, built with React, Vercel, and Supabase.
+A comprehensive business management system with AI-powered features, built with React, Render, and Supabase.
 
 ## Features
 
@@ -15,10 +15,10 @@ A comprehensive business management system with AI-powered features, built with 
 ## Tech Stack
 
 - **Frontend**: React + Vite
-- **Backend**: Vercel Serverless Functions
+- **Backend**: Render Web Service / optional serverless support
 - **Database**: Supabase (PostgreSQL)
 - **AI Services**: OpenClaude, Openfang, PentAgi
-- **Deployment**: Vercel
+- **Deployment**: Render
 
 ## Project Structure
 
@@ -68,7 +68,7 @@ Hermes_1.0/
 │   ├── server.js
 │   ├── .env.example
 │   └── package.json
-├── vercel.json                  # Vercel Configuration
+├── render.yaml                  # Render Blueprint
 ├── supabase_setup.sql          # Database Setup
 └── DEPLOYMENT.md              # Deployment Guide
 ```
@@ -115,7 +115,7 @@ npm run dev
 
 ### Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed Render deployment instructions.
 
 ## Environment Variables
 
@@ -138,10 +138,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 CORS_ORIGIN=http://localhost:5173
 ```
 
-### Vercel
+### Render
 
-Add these environment variables in your Vercel project settings:
+Add these environment variables in your Render services:
 - `OPENCLAUDE_API_KEY`
+- `OPENROUTER_API_KEY`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 

@@ -203,6 +203,22 @@ function Admin_Dashboard() {
             color: '#ff6b6b',
             layer: 'Security',
             status: systemStatus.pentagi
+        },
+        {
+            id: 7,
+            title: 'Facebook Page Connect',
+            description: 'Connect and configure Facebook Page webhook credentials',
+            icon: (
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                    <path d="M16 8a6 6 0 1 0-8 5.66V20l4-2 4 2v-6.34A6 6 0 0 0 16 8z"></path>
+                    <path d="M11 10h2"></path>
+                    <path d="M11 7h2v6"></path>
+                </svg>
+            ),
+            link: '/AdminFacebookConnect',
+            color: '#1877f2',
+            layer: 'Integration',
+            status: 'active'
         }
     ];
 

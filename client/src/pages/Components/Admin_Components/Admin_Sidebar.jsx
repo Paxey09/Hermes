@@ -19,6 +19,9 @@ import '../../../styles/Admin_styles/Admin_Style.css';
                   <a href="/AdminAccountControl" className="nav-item">
                       <span className="nav-text">Accounts Control</span>
                   </a>
+                  <a href="/AdminFacebookConnect" className="nav-item">
+                      <span className="nav-text">Connect FB Page</span>
+                  </a>
               </nav>
           </aside>
       );

@@ -15,6 +15,7 @@ import AdminERP from "./pages/Admin/Modules/Admin_ERP.jsx"
 import AdminAnalytics from "./pages/Admin/Modules/Admin_Analytics.jsx"
 import AdminInfrastructure from "./pages/Admin/Modules/Admin_Infrastructure.jsx"
 import AdminSecurity from "./pages/Admin/Modules/Admin_Security.jsx"
+import AdminFacebookConnect from "./pages/Admin/Admin_FacebookConnect.jsx"
 
 
 
@@ -95,6 +96,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="Admin">
               <AdminSecurity />
+            </ProtectedRoute>
+          }
+      />
+      <Route
+          path="/AdminFacebookConnect"
+          element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminFacebookConnect />
             </ProtectedRoute>
           }
       />
