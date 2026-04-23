@@ -87,18 +87,25 @@ class FacebookIntegrationService {
         pageAccessTokenMasked: data.pageAccessTokenMasked || '••••••••',
         verifyToken: data.verifyToken || cached.verifyToken || this.createToken('test'),
       });
-    } catch (error) {
+    } catch {
       const cached = this.readCache();
       if (cached) {
         return cached;
+      }
 
       try {
-        return await this.request('/integrations/facebook', { method: 'GET' });
+        const data = await this.request('/integrations/facebook', { method: 'GET' });
+        return this.writeCache({
+          ...data,
+          subscription: data.subscription || 'messages and messaging_postbacks',
+          pageAccessTokenMasked: data.pageAccessTokenMasked || '••••••••',
+          verifyToken: data.verifyToken || this.createToken('test'),
+        });
       } catch {
         return {
           connected: false,
           pageId: '',
-        webhookUrl: cached.webhookUrl || `${origin}/api/webhooks/facebook`,
+          pageName: '',
           hasPageAccessToken: false,
           hasVerifyToken: false,
           hasAppSecret: false,
