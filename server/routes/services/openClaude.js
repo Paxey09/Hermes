@@ -1,0 +1,298 @@
+const express = require("express");
+const router = express.Router();
+
+const OPENCLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+const OPENROUTER_MODEL_MAP = {
+  "claude-3-sonnet-20240229": "anthropic/claude-3.5-sonnet",
+  "claude-3-opus-20240229": "anthropic/claude-3-opus",
+  "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
+};
+
+const SUPPORTED_TOPICS = [
+  "CRM",
+  "ERP",
+  "Appointment Booking",
+  "Data Analytics & Market Research",
+  "Email Marketing",
+];
+
+const TOPIC_KEYWORDS = [
+  "crm",
+  "customer relationship",
+  "lead",
+  "sales pipeline",
+  "erp",
+  "enterprise resource planning",
+  "inventory",
+  "procurement",
+  "appointment",
+  "booking",
+  "schedule",
+  "calendar",
+  "data analytics",
+  "analytics",
+  "market research",
+  "market analysis",
+  "email marketing",
+  "newsletter",
+  "campaign",
+  "email campaign",
+];
+
+function getLatestUserMessage(messages = []) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === "user") {
+      return typeof messages[i].content === "string" ? messages[i].content : String(messages[i].content || "");
+    }
+  }
+  return "";
+}
+
+function isInSupportedScope(text) {
+  const value = (text || "").toLowerCase();
+  return TOPIC_KEYWORDS.some((keyword) => value.includes(keyword));
+}
+
+function buildOutOfScopeResponse(model) {
+  return {
+    id: "restricted_" + Date.now(),
+    type: "message",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text: `I can only help with: ${SUPPORTED_TOPICS.join(", ")}.`,
+      },
+    ],
+    model: model || "claude-3-sonnet-20240229",
+    stop_reason: "end_turn",
+    restricted: true,
+  };
+}
+
+function normalizeMessages(messages = []) {
+  return messages.map((m) => ({
+    role: m.role,
+    content: typeof m.content === "string" ? m.content : String(m.content || ""),
+  }));
+}
+
+async function callViaOpenRouter({ messages, model, options, apiKey }) {
+  const mappedModel = OPENROUTER_MODEL_MAP[model] || model || "anthropic/claude-3.5-sonnet";
+
+  const buildPayload = (selectedModel) => ({
+    model: selectedModel,
+    messages: normalizeMessages(messages),
+    max_tokens: options?.maxTokens || 1024,
+    temperature: options?.temperature ?? 0.7,
+  });
+
+  let response = await fetch(OPENROUTER_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(buildPayload(mappedModel)),
+  });
+
+  let data = await response.json();
+
+  if (!response.ok && response.status === 404) {
+    response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(buildPayload("openrouter/auto")),
+    });
+    data = await response.json();
+  }
+
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || response.statusText || "OpenRouter request failed");
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+
+  const text = data?.choices?.[0]?.message?.content || "No response text returned.";
+  return {
+    id: data.id || "msg_" + Date.now(),
+    type: "message",
+    role: "assistant",
+    content: [{ type: "text", text }],
+    model: data.model || mappedModel,
+    stop_reason: data?.choices?.[0]?.finish_reason || "end_turn",
+  };
+}
+
+async function callOpenClaude({ messages, model, options }) {
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const openClaudeApiKey = process.env.OPENCLAUDE_API_KEY;
+
+  if (openRouterApiKey) {
+    if (!openRouterApiKey.startsWith("sk-or-v1-")) {
+      const error = new Error("OPENROUTER_API_KEY appears invalid. Expected a key starting with sk-or-v1-");
+      error.status = 500;
+      throw error;
+    }
+
+    return callViaOpenRouter({ messages, model, options, apiKey: openRouterApiKey });
+  }
+
+  const apiKey = openClaudeApiKey;
+
+  if (!apiKey) {
+    const userMessage = messages?.[messages.length - 1]?.content || "";
+    return {
+      id: "demo_" + Date.now(),
+      type: "message",
+      role: "assistant",
+      content: [
+        {
+          type: "text",
+          text: `Demo mode: no OPENCLAUDE_API_KEY configured yet. You said: ${userMessage}`,
+        },
+      ],
+      model: model || "claude-3-sonnet-20240229",
+      stop_reason: "end_turn",
+      demo_mode: true,
+    };
+  }
+
+  const payload = {
+    model: model || "claude-3-sonnet-20240229",
+    max_tokens: options?.maxTokens || 1024,
+    temperature: options?.temperature ?? 0.7,
+    messages: normalizeMessages(messages),
+  };
+
+  if (apiKey.startsWith("sk-or-v1-")) {
+    return callViaOpenRouter({ messages, model, options, apiKey });
+  }
+
+  const response = await fetch(OPENCLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || response.statusText || "OpenClaude request failed");
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+
+  return data;
+}
+
+// OpenClaude Service Routes
+router.get("/health", (req, res) => {
+  const provider = process.env.OPENROUTER_API_KEY
+    ? "openrouter"
+    : process.env.OPENCLAUDE_API_KEY
+    ? "anthropic"
+    : "demo";
+
+  res.json({
+    status: "healthy",
+    service: "OpenClaude",
+    provider,
+    configured: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENCLAUDE_API_KEY),
+    timestamp: new Date().toISOString()
+  });
+});
+
+router.post("/chat", async (req, res) => {
+  const { messages, model, options } = req.body;
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: "messages array is required" });
+  }
+
+  const latestUserText = getLatestUserMessage(messages);
+  if (!isInSupportedScope(latestUserText)) {
+    return res.status(200).json(buildOutOfScopeResponse(model));
+  }
+
+  try {
+    const data = await callOpenClaude({ messages, model, options });
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("OpenClaude /chat error:", error);
+    return res.status(error.status || 500).json({
+      error: "Failed to call OpenClaude API",
+      message: error.message,
+      details: error.details || null,
+    });
+  }
+});
+
+router.post("/crm-insights", (req, res) => {
+  const { customerData } = req.body;
+
+  // TODO: Generate actual CRM insights using OpenClaude
+  res.json({
+    content: [
+      {
+        type: "text",
+        text: "CRM insights generated successfully. Integrate with OpenClaude for actual analysis."
+      }
+    ]
+  });
+});
+
+router.post("/erp-docs", (req, res) => {
+  const { context } = req.body;
+
+  // TODO: Generate actual ERP documentation using OpenClaude
+  res.json({
+    content: [
+      {
+        type: "text",
+        text: "ERP documentation generated successfully. Integrate with OpenClaude for actual generation."
+      }
+    ]
+  });
+});
+
+router.post("/analytics-insights", (req, res) => {
+  const { data } = req.body;
+
+  // TODO: Generate actual analytics insights using OpenClaude
+  res.json({
+    content: [
+      {
+        type: "text",
+        text: "Analytics insights generated successfully. Integrate with OpenClaude for actual analysis."
+      }
+    ]
+  });
+});
+
+router.post("/market-research", (req, res) => {
+  const { topic } = req.body;
+
+  // TODO: Generate actual market research templates using OpenClaude
+  res.json({
+    content: [
+      {
+        type: "text",
+        text: "Market research template generated successfully. Integrate with OpenClaude for actual generation."
+      }
+    ]
+  });
+});
+
+module.exports = router;

@@ -1,0 +1,12 @@
+{
+    "Pid":  21020,
+    "Subdomain":  "hermes2159396",
+    "OutLog":  "lt_hermes2159396.out.log",
+    "ErrLog":  "lt_hermes2159396.err.log",
+    "Started":  {
+                    "value":  "\/Date(1776848127893)\/",
+                    "DisplayHint":  2,
+                    "DateTime":  "Wednesday, April 22, 2026 4:55:27 PM"
+                },
+    "Launch":  "npx localtunnel --port 5000 --subdomain \u003csub\u003e --print-requests"
+}
