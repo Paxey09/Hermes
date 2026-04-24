@@ -58,6 +58,24 @@ async function getSupabaseFacebookConfig() {
   return getNormalizedSupabaseRecord(data[0]);
 }
 
+async function getSupabaseFacebookPages() {
+  if (!supabaseClient) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from("fb_pages")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to read fb_pages list from Supabase", { message: error.message });
+    return [];
+  }
+
+  return Array.isArray(data) ? data.map(getNormalizedSupabaseRecord) : [];
+}
+
 async function saveSupabasePageToken(payload = {}) {
   if (!supabaseClient) {
     throw new Error("Supabase credentials are missing on server.");
@@ -236,10 +254,11 @@ router.get("/", async (req, res) => {
 
 router.get("/admin/status", async (req, res) => {
   const config = await getFacebookConfig();
+  const connectedPages = await getSupabaseFacebookPages();
   const baseUrl = getPublicBaseUrl(req);
 
   res.status(200).json({
-    connected: Boolean(config.pageAccessToken && config.verifyToken),
+    connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
@@ -248,6 +267,11 @@ router.get("/admin/status", async (req, res) => {
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
     webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    connectedPages: connectedPages.map((page) => ({
+      ...page,
+      pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}••••••••` : null,
+    })),
+    connectedCount: connectedPages.length,
     note: "Page token is loaded from Supabase table fb_pages (fb_token). Verify token and app secret still come from server runtime/env.",
   });
 });
@@ -272,11 +296,12 @@ router.post("/admin/connect", async (req, res) => {
   }
 
   const config = await getFacebookConfig();
+  const connectedPages = await getSupabaseFacebookPages();
   const baseUrl = getPublicBaseUrl(req);
 
   return res.status(200).json({
     success: true,
-    connected: Boolean(config.pageAccessToken && config.verifyToken),
+    connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
@@ -285,6 +310,11 @@ router.post("/admin/connect", async (req, res) => {
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
     webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    connectedPages: connectedPages.map((page) => ({
+      ...page,
+      pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}••••••••` : null,
+    })),
+    connectedCount: connectedPages.length,
     note: "Page token saved to Supabase table fb_pages. Verify token and app secret are runtime/env settings.",
   });
 });

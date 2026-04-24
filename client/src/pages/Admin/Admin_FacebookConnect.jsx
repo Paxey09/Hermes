@@ -15,6 +15,8 @@ function Admin_FacebookConnect() {
     generatedToken: '',
   });
 
+  const connectedPages = Array.isArray(status?.connectedPages) ? status.connectedPages : [];
+
   const loadStatus = async () => {
     try {
       setLoadingStatus(true);
@@ -134,37 +136,34 @@ function Admin_FacebookConnect() {
           <div className="fb-connected-header">
             <div>
               <h3>Connected Pages</h3>
-              <p>Show the active Facebook Page linked to Hermes.</p>
+              <p>Show all Facebook Pages linked to Hermes.</p>
             </div>
             <span className={`fb-status-badge ${status?.connected ? 'connected' : 'disconnected'}`}>
-              {status?.connected ? '1 Connected' : 'No Pages Connected'}
+              {status?.connected ? `${status?.connectedCount || connectedPages.length || 0} Connected` : 'No Pages Connected'}
             </span>
           </div>
 
-          {status?.connected ? (
-            <div className="fb-page-row">
-              <div className="fb-page-avatar">{(status.pageName || 'H').charAt(0).toUpperCase()}</div>
-              <div className="fb-page-main">
-                <div className="fb-page-name">{status.pageName || 'Connected Facebook Page'}</div>
-                <div className="fb-page-id">{webhookUrl}</div>
-              </div>
-              <div className="fb-page-subscription">
-                <span className="fb-page-column-label">Webhook Subscription</span>
-                <span>{status.subscription || 'messages and messaging_postbacks'}</span>
-              </div>
-              <div className="fb-page-token">
-                <span className="fb-page-column-label">Generated Token</span>
-                <div className="fb-token-actions">
-                  <button
-                    type="button"
-                    className="fb-token-btn"
-                    onClick={generateToken}
-                  >
-                    Generate
-                  </button>
-                  <span className="fb-token-value">{generatedTokenValue}</span>
+          {connectedPages.length > 0 ? (
+            <div className="fb-connected-list">
+              {connectedPages.map((page, index) => (
+                <div className="fb-page-row" key={`${page.pageId || page.pageName || 'page'}-${index}`}>
+                  <div className="fb-page-avatar">{(page.pageName || 'H').charAt(0).toUpperCase()}</div>
+                  <div className="fb-page-main">
+                    <div className="fb-page-name">{page.pageName || 'Connected Facebook Page'}</div>
+                    <div className="fb-page-id">{page.pageId ? `Page ID: ${page.pageId}` : webhookUrl}</div>
+                  </div>
+                  <div className="fb-page-subscription">
+                    <span className="fb-page-column-label">Webhook Subscription</span>
+                    <span>{status?.subscription || 'messages and messaging_postbacks'}</span>
+                  </div>
+                  <div className="fb-page-token">
+                    <span className="fb-page-column-label">Stored Token</span>
+                    <div className="fb-token-actions">
+                      <span className="fb-token-value">{page.pageAccessTokenMasked || '••••••••'}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           ) : (
             <div className="fb-empty-state">
