@@ -132,7 +132,7 @@ class FacebookIntegrationService {
         pageAccessTokenMasked: payload.pageAccessToken ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••` : '••••••••',
         verifyToken: data.verifyToken || payload.verifyToken || this.createToken('test'),
       });
-    } catch (error) {
+    } catch (primaryError) {
       try {
         const data = await this.request('/integrations/facebook', {
           method: 'POST',
@@ -145,8 +145,10 @@ class FacebookIntegrationService {
           pageAccessTokenMasked: payload.pageAccessToken ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••` : '••••••••',
           verifyToken: data.verifyToken || payload.verifyToken || this.createToken('test'),
         });
-      } catch {
-        return this.buildFallbackStatus(payload);
+      } catch (fallbackError) {
+        const primaryMessage = primaryError?.message || 'Primary connect endpoint failed.';
+        const fallbackMessage = fallbackError?.message || 'Fallback connect endpoint failed.';
+        throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
       }
     }
   }
