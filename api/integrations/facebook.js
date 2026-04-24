@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 const runtimeConfig = {
   pageId: "",
   pageName: "",
@@ -6,11 +8,101 @@ const runtimeConfig = {
   appSecret: "",
 };
 
-function getConfig() {
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServerKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseClient = supabaseUrl && supabaseServerKey ? createClient(supabaseUrl, supabaseServerKey) : null;
+
+function getNormalizedSupabaseRecord(record = {}) {
+  const pageAccessToken =
+    (typeof record.fb_token === "string" && record.fb_token.trim()) ||
+    (typeof record.page_access_token === "string" && record.page_access_token.trim()) ||
+    "";
+  const pageName =
+    (typeof record.fb_name === "string" && record.fb_name.trim()) ||
+    (typeof record.page_name === "string" && record.page_name.trim()) ||
+    "";
+  const rawId = record.page_id ?? record.fb_page_id ?? record.id;
+
   return {
-    pageId: runtimeConfig.pageId || process.env.FB_PAGE_ID || "",
-    pageName: runtimeConfig.pageName || process.env.FB_PAGE_NAME || "",
-    pageAccessToken: runtimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+    pageId: rawId == null ? "" : String(rawId),
+    pageName,
+    pageAccessToken,
+  };
+}
+
+async function getSupabaseFacebookConfig() {
+  if (!supabaseClient) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("fb_pages")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error("Failed to read fb_pages from Supabase", { message: error.message });
+    return null;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  return getNormalizedSupabaseRecord(data[0]);
+}
+
+async function saveSupabasePageToken(payload = {}) {
+  if (!supabaseClient) {
+    throw new Error("Supabase credentials are missing on server.");
+  }
+
+  const record = {
+    fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
+    fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
+  };
+
+  const { data: existingRows, error: readError } = await supabaseClient
+    .from("fb_pages")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (readError) {
+    throw new Error(`Failed to read fb_pages before save: ${readError.message}`);
+  }
+
+  const latestRow = Array.isArray(existingRows) ? existingRows[0] : null;
+
+  if (latestRow?.id != null) {
+    const { error: updateError } = await supabaseClient
+      .from("fb_pages")
+      .update(record)
+      .eq("id", latestRow.id);
+
+    if (updateError) {
+      throw new Error(`Failed to update fb_pages token: ${updateError.message}`);
+    }
+
+    return;
+  }
+
+  const { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+
+  if (insertError) {
+    throw new Error(`Failed to insert fb_pages token: ${insertError.message}`);
+  }
+}
+
+async function getConfig() {
+  const supabaseConfig = await getSupabaseFacebookConfig();
+
+  return {
+    pageId: supabaseConfig?.pageId || runtimeConfig.pageId || process.env.FB_PAGE_ID || "",
+    pageName: supabaseConfig?.pageName || runtimeConfig.pageName || process.env.FB_PAGE_NAME || "",
+    pageAccessToken:
+      supabaseConfig?.pageAccessToken || runtimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
     verifyToken: runtimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: runtimeConfig.appSecret || process.env.FB_APP_SECRET || "",
   };
@@ -38,8 +130,8 @@ function getBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
-function buildStatus(req) {
-  const config = getConfig();
+async function buildStatus(req) {
+  const config = await getConfig();
 
   return {
     connected: Boolean(config.pageAccessToken && config.verifyToken),
@@ -51,11 +143,11 @@ function buildStatus(req) {
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
     webhookUrl: `${getBaseUrl(req)}/api/webhooks/facebook`,
-    note: "Credentials set from this panel are runtime-only. Add FB_* environment variables for persistence.",
+    note: "Page token is loaded from Supabase table fb_pages (fb_token). Verify token and app secret still come from server runtime/env.",
   };
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,POST");
@@ -66,7 +158,7 @@ export default function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    return res.status(200).json(buildStatus(req));
+    return res.status(200).json(await buildStatus(req));
   }
 
   if (req.method === "POST") {
@@ -80,12 +172,20 @@ export default function handler(req, res) {
       return res.status(400).json({ error: "pageAccessToken and verifyToken are required" });
     }
 
-    saveConfig({ pageId, pageName, pageAccessToken, verifyToken, appSecret });
+    saveConfig({ pageId, pageName, verifyToken, appSecret });
+
+    try {
+      await saveSupabasePageToken({ pageName, pageAccessToken });
+    } catch (error) {
+      return res.status(500).json({
+        error: error.message || "Failed to save Facebook Page token to Supabase",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      ...buildStatus(req),
-      note: "Connection saved for current runtime. Add FB_* env vars to keep this after restart/redeploy.",
+      ...(await buildStatus(req)),
+      note: "Page token saved to Supabase table fb_pages. Verify token and app secret are runtime/env settings.",
     });
   }
 
