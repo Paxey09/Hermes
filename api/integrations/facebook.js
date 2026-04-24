@@ -63,31 +63,6 @@ async function saveSupabasePageToken(payload = {}) {
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
   };
 
-  const { data: existingRows, error: readError } = await supabaseClient
-    .from("fb_pages")
-    .select("id")
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (readError) {
-    throw new Error(`Failed to read fb_pages before save: ${readError.message}`);
-  }
-
-  const latestRow = Array.isArray(existingRows) ? existingRows[0] : null;
-
-  if (latestRow?.id != null) {
-    const { error: updateError } = await supabaseClient
-      .from("fb_pages")
-      .update(record)
-      .eq("id", latestRow.id);
-
-    if (updateError) {
-      throw new Error(`Failed to update fb_pages token: ${updateError.message}`);
-    }
-
-    return;
-  }
-
   const { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
 
   if (insertError) {
