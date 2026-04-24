@@ -1085,7 +1085,8 @@
   }
 
   .fb-page-subscription,
-  .fb-page-token {
+  .fb-page-token,
+  .fb-page-access {
     display: grid;
     gap: 0.35rem;
     color: #f5f0e8;
@@ -1174,7 +1175,8 @@
     }
 
     .fb-page-subscription,
-    .fb-page-token {
+    .fb-page-token,
+    .fb-page-access {
       grid-column: 1 / -1;
     }
   }

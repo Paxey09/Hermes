@@ -17,6 +17,10 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServerKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const supabaseClient = supabaseUrl && supabaseServerKey ? createClient(supabaseUrl, supabaseServerKey) : null;
 
+function normalizeAccessMode(value) {
+  return typeof value === "string" && value.trim().toLowerCase() === "disable" ? "disable" : "enable";
+}
+
 function getNormalizedSupabaseRecord(record = {}) {
   const pageAccessToken =
     (typeof record.fb_token === "string" && record.fb_token.trim()) ||
@@ -27,11 +31,13 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.page_name === "string" && record.page_name.trim()) ||
     "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
+  const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
   return {
     pageId: rawId == null ? "" : String(rawId),
     pageName,
     pageAccessToken,
+    accessMode,
   };
 }
 
@@ -84,6 +90,7 @@ async function saveSupabasePageToken(payload = {}) {
   const record = {
     fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
+    access_mode: normalizeAccessMode(payload.accessMode),
   };
 
   const { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
@@ -91,6 +98,39 @@ async function saveSupabasePageToken(payload = {}) {
   if (insertError) {
     throw new Error(`Failed to insert fb_pages token: ${insertError.message}`);
   }
+}
+
+async function updateSupabasePageAccessMode(pageId, accessMode) {
+  if (!supabaseClient) {
+    throw new Error("Supabase credentials are missing on server.");
+  }
+
+  const normalizedPageId = typeof pageId === "string" ? pageId.trim() : String(pageId || "").trim();
+  if (!normalizedPageId) {
+    throw new Error("pageId is required");
+  }
+
+  const nextAccessMode = normalizeAccessMode(accessMode);
+
+  const matchColumns = ["id", "page_id", "fb_page_id"];
+  for (const column of matchColumns) {
+    const { data, error } = await supabaseClient
+      .from("fb_pages")
+      .update({ access_mode: nextAccessMode })
+      .eq(column, normalizedPageId)
+      .select("*")
+      .limit(1);
+
+    if (error) {
+      continue;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      return getNormalizedSupabaseRecord(data[0]);
+    }
+  }
+
+  throw new Error("Failed to update access mode. Page not found.");
 }
 
 async function getFacebookConfig() {
@@ -101,6 +141,7 @@ async function getFacebookConfig() {
     pageName: supabaseConfig?.pageName || fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "",
     pageAccessToken:
       supabaseConfig?.pageAccessToken || fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+    accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
   };
@@ -264,6 +305,7 @@ router.get("/admin/status", async (req, res) => {
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
+    accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
     webhookUrl: `${baseUrl}/api/webhooks/facebook`,
@@ -277,7 +319,7 @@ router.get("/admin/status", async (req, res) => {
 });
 
 router.post("/admin/connect", async (req, res) => {
-  const { pageId, pageName, pageAccessToken, verifyToken, appSecret } = req.body || {};
+  const { pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
     return res.status(400).json({
@@ -288,7 +330,7 @@ router.post("/admin/connect", async (req, res) => {
   saveRuntimeConfig({ pageId, pageName, verifyToken, appSecret });
 
   try {
-    await saveSupabasePageToken({ pageName, pageAccessToken });
+    await saveSupabasePageToken({ pageName, pageAccessToken, accessMode });
   } catch (error) {
     return res.status(500).json({
       error: error.message || "Failed to save Facebook Page token to Supabase",
@@ -307,6 +349,7 @@ router.post("/admin/connect", async (req, res) => {
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
+    accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
     webhookUrl: `${baseUrl}/api/webhooks/facebook`,
@@ -316,6 +359,42 @@ router.post("/admin/connect", async (req, res) => {
     })),
     connectedCount: connectedPages.length,
     note: "Page token saved to Supabase table fb_pages. Verify token and app secret are runtime/env settings.",
+  });
+});
+
+router.post("/admin/access-mode", async (req, res) => {
+  const { pageId, accessMode } = req.body || {};
+
+  try {
+    await updateSupabasePageAccessMode(pageId, accessMode);
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message || "Failed to update access mode",
+    });
+  }
+
+  const config = await getFacebookConfig();
+  const connectedPages = await getSupabaseFacebookPages();
+  const baseUrl = getPublicBaseUrl(req);
+
+  return res.status(200).json({
+    success: true,
+    connected: Boolean(connectedPages.length > 0 && config.verifyToken),
+    pageId: config.pageId || null,
+    pageName: config.pageName || null,
+    hasPageAccessToken: Boolean(config.pageAccessToken),
+    hasVerifyToken: Boolean(config.verifyToken),
+    hasAppSecret: Boolean(config.appSecret),
+    accessMode: config.accessMode,
+    verifyToken: config.verifyToken || null,
+    pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
+    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    connectedPages: connectedPages.map((page) => ({
+      ...page,
+      pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}••••••••` : null,
+    })),
+    connectedCount: connectedPages.length,
+    note: "Access mode updated successfully.",
   });
 });
 
@@ -364,10 +443,15 @@ router.post("/", async (req, res) => {
     return;
   }
 
+  const facebookConfig = await getFacebookConfig();
+  const chatbotEnabled = facebookConfig.accessMode !== "disable";
+
   void Promise.allSettled(
     messageEvents.map(async ({ senderId, incomingText, entryId }) => {
       try {
-        const replyText = await generateChatbotReply(incomingText);
+        const replyText = chatbotEnabled
+          ? await generateChatbotReply(incomingText)
+          : "Chatbot not available. Contact the admin.";
         await sendFacebookMessage(senderId, replyText);
       } catch (error) {
         console.error("Facebook webhook reply error:", {

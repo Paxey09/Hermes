@@ -7,6 +7,7 @@ function Admin_FacebookConnect() {
   const [status, setStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatingPageId, setUpdatingPageId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -60,6 +61,7 @@ function Admin_FacebookConnect() {
         pageName: form.pageName,
         pageAccessToken: form.generatedToken,
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
+        accessMode: status?.accessMode || 'enable',
       });
       setStatus(data);
       setSuccess('Facebook Page connection saved successfully.');
@@ -77,6 +79,33 @@ function Admin_FacebookConnect() {
   const webhookUrl = status?.webhookUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/facebook` : '');
   const testToken = status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {});
   const generatedTokenValue = form.generatedToken || status?.pageAccessTokenMasked || '••••••••';
+
+  const toReadableMode = (mode) => (String(mode || '').toLowerCase() === 'disable' ? 'Disable' : 'Enable');
+
+  const toggleAccessMode = async (page) => {
+    const pageId = page?.pageId;
+    if (!pageId) {
+      setError('Missing page id. Cannot update access mode.');
+      return;
+    }
+
+    const currentMode = String(page?.accessMode || 'enable').toLowerCase() === 'disable' ? 'disable' : 'enable';
+    const nextMode = currentMode === 'disable' ? 'enable' : 'disable';
+
+    setUpdatingPageId(String(pageId));
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = await facebookIntegrationService.updateAccessMode(pageId, nextMode);
+      setStatus(data);
+      setSuccess(`Access mode updated to ${toReadableMode(nextMode)} for ${page.pageName || `Page ${pageId}`}.`);
+    } catch (modeError) {
+      setError(modeError.message || 'Failed to update access mode.');
+    } finally {
+      setUpdatingPageId('');
+    }
+  };
 
   const copyToClipboard = async (value) => {
     if (!value || value === '••••••••') return;
@@ -116,6 +145,9 @@ function Admin_FacebookConnect() {
             </div>
             <div>
               <strong>Tokens:</strong> {status?.hasPageAccessToken ? 'Configured' : 'Missing'} / {status?.hasVerifyToken ? 'Test token set' : 'Test token missing'}
+            </div>
+            <div>
+              <strong>Access Mode:</strong> {toReadableMode(status?.accessMode)}
             </div>
           </div>
           {status?.note && <p className="fb-status-note">{status.note}</p>}
@@ -160,6 +192,26 @@ function Admin_FacebookConnect() {
                     <span className="fb-page-column-label">Stored Token</span>
                     <div className="fb-token-actions">
                       <span className="fb-token-value">{page.pageAccessTokenMasked || '••••••••'}</span>
+                    </div>
+                  </div>
+                  <div className="fb-page-access">
+                    <span className="fb-page-column-label">Access Mode</span>
+                    <div className="fb-token-actions">
+                      <span className={`fb-status-badge ${String(page.accessMode || '').toLowerCase() === 'disable' ? 'disconnected' : 'connected'}`}>
+                        {toReadableMode(page.accessMode)}
+                      </span>
+                      <button
+                        type="button"
+                        className="fb-btn-secondary"
+                        onClick={() => toggleAccessMode(page)}
+                        disabled={updatingPageId === String(page.pageId)}
+                      >
+                        {updatingPageId === String(page.pageId)
+                          ? 'Updating...'
+                          : String(page.accessMode || '').toLowerCase() === 'disable'
+                          ? 'Enable Access'
+                          : 'Disable Access'}
+                      </button>
                     </div>
                   </div>
                 </div>

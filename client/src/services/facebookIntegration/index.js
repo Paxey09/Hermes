@@ -49,6 +49,7 @@ class FacebookIntegrationService {
       connected: true,
       pageId: payload.pageId || cached.pageId || '',
       pageName: payload.pageName || cached.pageName || 'Connected Facebook Page',
+      accessMode: payload.accessMode || cached.accessMode || 'enable',
       hasPageAccessToken: true,
       hasVerifyToken: true,
       hasAppSecret: Boolean(payload.appSecret || cached.hasAppSecret),
@@ -57,6 +58,18 @@ class FacebookIntegrationService {
       subscription: 'messages and messaging_postbacks',
       pageAccessTokenMasked: payload.pageAccessToken ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••` : cached.pageAccessTokenMasked || '••••••••',
       verifyToken,
+      connectedPages: Array.isArray(cached.connectedPages)
+        ? cached.connectedPages
+        : [
+            {
+              pageId: payload.pageId || cached.pageId || '',
+              pageName: payload.pageName || cached.pageName || 'Connected Facebook Page',
+              accessMode: payload.accessMode || cached.accessMode || 'enable',
+              pageAccessTokenMasked: payload.pageAccessToken
+                ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••`
+                : cached.pageAccessTokenMasked || '••••••••',
+            },
+          ],
     });
   }
 
@@ -106,6 +119,7 @@ class FacebookIntegrationService {
           connected: false,
           pageId: '',
           pageName: '',
+          accessMode: 'enable',
           hasPageAccessToken: false,
           hasVerifyToken: false,
           hasAppSecret: false,
@@ -113,6 +127,7 @@ class FacebookIntegrationService {
           subscription: 'messages and messaging_postbacks',
           pageAccessTokenMasked: '••••••••',
           verifyToken: this.createToken('test'),
+          connectedPages: [],
           note: 'No cached connection found yet.',
         };
       }
@@ -128,6 +143,7 @@ class FacebookIntegrationService {
 
       return this.writeCache({
         ...data,
+        accessMode: data.accessMode || payload.accessMode || 'enable',
         subscription: data.subscription || 'messages and messaging_postbacks',
         pageAccessTokenMasked: payload.pageAccessToken ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••` : '••••••••',
         verifyToken: data.verifyToken || payload.verifyToken || this.createToken('test'),
@@ -141,6 +157,7 @@ class FacebookIntegrationService {
 
         return this.writeCache({
           ...data,
+          accessMode: data.accessMode || payload.accessMode || 'enable',
           subscription: data.subscription || 'messages and messaging_postbacks',
           pageAccessTokenMasked: payload.pageAccessToken ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••` : '••••••••',
           verifyToken: data.verifyToken || payload.verifyToken || this.createToken('test'),
@@ -148,6 +165,36 @@ class FacebookIntegrationService {
       } catch (fallbackError) {
         const primaryMessage = primaryError?.message || 'Primary connect endpoint failed.';
         const fallbackMessage = fallbackError?.message || 'Fallback connect endpoint failed.';
+        throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
+      }
+    }
+  }
+
+  async updateAccessMode(pageId, accessMode) {
+    try {
+      const data = await this.request('/webhooks/facebook/admin/access-mode', {
+        method: 'POST',
+        body: JSON.stringify({ pageId, accessMode }),
+      });
+
+      return this.writeCache({
+        ...data,
+        accessMode: data.accessMode || 'enable',
+      });
+    } catch (primaryError) {
+      try {
+        const data = await this.request('/integrations/facebook', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'updateAccessMode', pageId, accessMode }),
+        });
+
+        return this.writeCache({
+          ...data,
+          accessMode: data.accessMode || 'enable',
+        });
+      } catch (fallbackError) {
+        const primaryMessage = primaryError?.message || 'Primary access mode endpoint failed.';
+        const fallbackMessage = fallbackError?.message || 'Fallback access mode endpoint failed.';
         throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
       }
     }
