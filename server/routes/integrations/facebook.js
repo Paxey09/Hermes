@@ -9,6 +9,7 @@ const fbRuntimeConfig = {
   pageId: "",
   pageName: "",
   pageAccessToken: "",
+  businessType: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -30,6 +31,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.fb_name === "string" && record.fb_name.trim()) ||
     (typeof record.page_name === "string" && record.page_name.trim()) ||
     "";
+  const businessType =
+    (typeof record.business_type === "string" && record.business_type.trim()) ||
+    (typeof record.businessType === "string" && record.businessType.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -37,6 +42,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     pageId: rawId == null ? "" : String(rawId),
     pageName,
     pageAccessToken,
+    businessType,
     accessMode,
   };
 }
@@ -90,6 +96,7 @@ async function saveSupabasePageToken(payload = {}) {
   const record = {
     fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
+    business_type: typeof payload.businessType === "string" ? payload.businessType.trim() : "",
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -141,6 +148,8 @@ async function getFacebookConfig() {
     pageName: supabaseConfig?.pageName || fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "",
     pageAccessToken:
       supabaseConfig?.pageAccessToken || fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+    businessType:
+      supabaseConfig?.businessType || fbRuntimeConfig.businessType || process.env.FB_BUSINESS_TYPE || "",
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -151,6 +160,7 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.pageId === "string") fbRuntimeConfig.pageId = payload.pageId.trim();
   if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = payload.pageName.trim();
   if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = payload.pageAccessToken.trim();
+  if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = payload.businessType.trim();
   if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = payload.verifyToken.trim();
   if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = payload.appSecret.trim();
 }
@@ -206,7 +216,7 @@ function extractReplyText(result) {
   return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
 }
 
-async function generateChatbotReply(userText) {
+async function generateChatbotReply(userText, context = {}) {
   const chatEndpoint =
     process.env.INTERNAL_CHATBOT_URL ||
     `http://127.0.0.1:${process.env.PORT || 5000}/api/openclaude/chat`;
@@ -229,6 +239,7 @@ async function generateChatbotReply(userText) {
         temperature: 0.65,
         channel: "facebook",
         multilingual: true,
+        businessType: typeof context.businessType === "string" ? context.businessType : "",
       },
     }),
   });
@@ -302,6 +313,7 @@ router.get("/admin/status", async (req, res) => {
     connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
+    businessType: config.businessType || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -346,6 +358,7 @@ router.post("/admin/connect", async (req, res) => {
     connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
+    businessType: config.businessType || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -382,6 +395,7 @@ router.post("/admin/access-mode", async (req, res) => {
     connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
+    businessType: config.businessType || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -445,12 +459,13 @@ router.post("/", async (req, res) => {
 
   const facebookConfig = await getFacebookConfig();
   const chatbotEnabled = facebookConfig.accessMode !== "disable";
+  const businessType = facebookConfig.businessType || "";
 
   void Promise.allSettled(
     messageEvents.map(async ({ senderId, incomingText, entryId }) => {
       try {
         const replyText = chatbotEnabled
-          ? await generateChatbotReply(incomingText)
+          ? await generateChatbotReply(incomingText, { businessType })
           : "Chatbot not available. Contact the admin.";
         await sendFacebookMessage(senderId, replyText);
       } catch (error) {

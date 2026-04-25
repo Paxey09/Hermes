@@ -128,6 +128,34 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     return TOPIC_KEYWORDS.some((keyword) => value.includes(keyword));
   };
 
+  const normalizeBusinessType = (value) => (typeof value === 'string' ? value.trim() : '');
+
+  const buildBusinessContextMessages = (options = {}) => {
+    const businessType = normalizeBusinessType(options?.businessType);
+    const pageName = normalizeBusinessType(options?.pageName);
+
+    if (!businessType && !pageName) {
+      return [];
+    }
+
+    const contextParts = [];
+
+    if (pageName) {
+      contextParts.push(`Facebook page: ${pageName}`);
+    }
+
+    if (businessType) {
+      contextParts.push(`Business type: ${businessType}`);
+    }
+
+    contextParts.push('Use this business context to guide examples, terminology, and recommendations. Do not invent facts about the business; if the context is too broad, ask a clarifying question.');
+
+    return [{
+      role: 'system',
+      content: contextParts.join('\n'),
+    }];
+  };
+
   const buildOutOfScopeResponse = (model) => ({
     id: 'restricted_' + Date.now(),
     type: 'message',
@@ -150,8 +178,9 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     content: typeof m.content === 'string' ? m.content : String(m.content || ''),
   }));
 
-  const buildPromptedMessages = (messages = []) => [
+  const buildPromptedMessages = (messages = [], options = {}) => [
     { role: 'system', content: SALES_CSR_SYSTEM_PROMPT },
+    ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];
 
@@ -192,14 +221,14 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
 
     const openRouterPayload = {
       model: mappedModel || 'anthropic/claude-3.5-sonnet',
-      messages: buildPromptedMessages(body?.messages || []),
+      messages: buildPromptedMessages(body?.messages || [], body?.options || {}),
       max_tokens: body?.max_tokens || 1024,
       temperature: body?.temperature ?? 0.7,
     };
 
     const anthropicPayload = {
       ...body,
-      messages: buildPromptedMessages(body?.messages || []),
+      messages: buildPromptedMessages(body?.messages || [], body?.options || {}),
     };
 
     const runRequest = async (payload) => fetch(targetUrl, {

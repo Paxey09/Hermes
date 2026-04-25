@@ -116,6 +116,40 @@ function getLatestUserMessage(messages = []) {
   return "";
 }
 
+function normalizeBusinessType(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildBusinessContextMessages(options = {}) {
+  const businessType = normalizeBusinessType(options?.businessType);
+  const pageName = normalizeBusinessType(options?.pageName);
+
+  if (!businessType && !pageName) {
+    return [];
+  }
+
+  const contextParts = [];
+
+  if (pageName) {
+    contextParts.push(`Facebook page: ${pageName}`);
+  }
+
+  if (businessType) {
+    contextParts.push(`Business type: ${businessType}`);
+  }
+
+  contextParts.push(
+    "Use this business context to guide examples, terminology, and recommendations. Do not invent facts about the business; if the context is too broad, ask a clarifying question."
+  );
+
+  return [
+    {
+      role: "system",
+      content: contextParts.join("\n"),
+    },
+  ];
+}
+
 function isInSupportedScope(text, options = {}) {
   if (options?.channel === "facebook" || options?.multilingual === true) {
     return true;
@@ -149,9 +183,10 @@ function normalizeMessages(messages = []) {
   }));
 }
 
-function buildPromptedMessages(messages = []) {
+function buildPromptedMessages(messages = [], options = {}) {
   return [
     { role: "system", content: SALES_CSR_SYSTEM_PROMPT },
+    ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];
 }
@@ -161,7 +196,7 @@ async function callViaOpenRouter({ messages, model, options, apiKey }) {
 
   const buildPayload = (selectedModel) => ({
     model: selectedModel,
-    messages: buildPromptedMessages(messages),
+    messages: buildPromptedMessages(messages, options),
     max_tokens: options?.maxTokens || 1024,
     temperature: options?.temperature ?? 0.7,
   });
@@ -245,7 +280,7 @@ async function callOpenClaude({ messages, model, options }) {
     model: model || "claude-3-sonnet-20240229",
     max_tokens: options?.maxTokens || 1024,
     temperature: options?.temperature ?? 0.7,
-    messages: buildPromptedMessages(messages),
+    messages: buildPromptedMessages(messages, options),
   };
 
   if (apiKey.startsWith("sk-or-v1-")) {

@@ -4,6 +4,7 @@ const runtimeConfig = {
   pageId: "",
   pageName: "",
   pageAccessToken: "",
+  businessType: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -25,6 +26,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.fb_name === "string" && record.fb_name.trim()) ||
     (typeof record.page_name === "string" && record.page_name.trim()) ||
     "";
+  const businessType =
+    (typeof record.business_type === "string" && record.business_type.trim()) ||
+    (typeof record.businessType === "string" && record.businessType.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -32,6 +37,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     pageId: rawId == null ? "" : String(rawId),
     pageName,
     pageAccessToken,
+    businessType,
     accessMode,
   };
 }
@@ -85,6 +91,7 @@ async function saveSupabasePageToken(payload = {}) {
   const record = {
     fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
+    business_type: typeof payload.businessType === "string" ? payload.businessType.trim() : "",
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -136,6 +143,8 @@ async function getConfig() {
     pageName: supabaseConfig?.pageName || runtimeConfig.pageName || process.env.FB_PAGE_NAME || "",
     pageAccessToken:
       supabaseConfig?.pageAccessToken || runtimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+    businessType:
+      supabaseConfig?.businessType || runtimeConfig.businessType || process.env.FB_BUSINESS_TYPE || "",
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: runtimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: runtimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -146,6 +155,7 @@ function saveConfig(payload = {}) {
   if (typeof payload.pageId === "string") runtimeConfig.pageId = payload.pageId.trim();
   if (typeof payload.pageName === "string") runtimeConfig.pageName = payload.pageName.trim();
   if (typeof payload.pageAccessToken === "string") runtimeConfig.pageAccessToken = payload.pageAccessToken.trim();
+  if (typeof payload.businessType === "string") runtimeConfig.businessType = payload.businessType.trim();
   if (typeof payload.verifyToken === "string") runtimeConfig.verifyToken = payload.verifyToken.trim();
   if (typeof payload.appSecret === "string") runtimeConfig.appSecret = payload.appSecret.trim();
 }
@@ -172,6 +182,7 @@ async function buildStatus(req) {
     connected: Boolean(connectedPages.length > 0 && config.verifyToken),
     pageId: config.pageId || null,
     pageName: config.pageName || null,
+    businessType: config.businessType || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
