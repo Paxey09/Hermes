@@ -13,6 +13,7 @@ function Admin_FacebookConnect() {
 
   const [form, setForm] = useState({
     pageName: '',
+    businessType: '',
     generatedToken: '',
   });
 
@@ -27,6 +28,7 @@ function Admin_FacebookConnect() {
       setForm((current) => ({
         ...current,
         pageName: data.pageName || current.pageName,
+        businessType: data.businessType || current.businessType,
       }));
     } catch (loadError) {
       setError(loadError.message || 'Failed to load Facebook integration status.');
@@ -59,6 +61,7 @@ function Admin_FacebookConnect() {
     try {
       const data = await facebookIntegrationService.connectPage({
         pageName: form.pageName,
+        businessType: form.businessType,
         pageAccessToken: form.generatedToken,
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || 'enable',
@@ -144,6 +147,9 @@ function Admin_FacebookConnect() {
               <strong>Page Name:</strong> {status?.pageName || 'Not set'}
             </div>
             <div>
+              <strong>Business Type:</strong> {status?.businessType || 'Not set'}
+            </div>
+            <div>
               <strong>Tokens:</strong> {status?.hasPageAccessToken ? 'Configured' : 'Missing'} / {status?.hasVerifyToken ? 'Test token set' : 'Test token missing'}
             </div>
             <div>
@@ -183,6 +189,7 @@ function Admin_FacebookConnect() {
                   <div className="fb-page-main">
                     <div className="fb-page-name">{page.pageName || 'Connected Facebook Page'}</div>
                     <div className="fb-page-id">{page.pageId ? `Page ID: ${page.pageId}` : webhookUrl}</div>
+                    <div className="fb-page-id">{page.businessType ? `Business Type: ${page.businessType}` : 'Business Type: Not set'}</div>
                   </div>
                   <div className="fb-page-subscription">
                     <span className="fb-page-column-label">Webhook Subscription</span>
@@ -235,6 +242,18 @@ function Admin_FacebookConnect() {
                 value={form.pageName}
                 onChange={onChange}
                 placeholder="Hermes Official"
+                required
+              />
+            </label>
+
+            <label>
+              <span>Business Type</span>
+              <input
+                type="text"
+                name="businessType"
+                value={form.businessType}
+                onChange={onChange}
+                placeholder="Solar Energy, Retail, Real Estate"
                 required
               />
             </label>

@@ -49,6 +49,7 @@ class FacebookIntegrationService {
       connected: true,
       pageId: payload.pageId || cached.pageId || '',
       pageName: payload.pageName || cached.pageName || 'Connected Facebook Page',
+      businessType: payload.businessType || cached.businessType || '',
       accessMode: payload.accessMode || cached.accessMode || 'enable',
       hasPageAccessToken: true,
       hasVerifyToken: true,
@@ -64,6 +65,7 @@ class FacebookIntegrationService {
             {
               pageId: payload.pageId || cached.pageId || '',
               pageName: payload.pageName || cached.pageName || 'Connected Facebook Page',
+              businessType: payload.businessType || cached.businessType || '',
               accessMode: payload.accessMode || cached.accessMode || 'enable',
               pageAccessTokenMasked: payload.pageAccessToken
                 ? `${String(payload.pageAccessToken).slice(0, 4)}••••••••`
