@@ -191,14 +191,18 @@ async function getFacebookConfig(options = {}) {
   const supabaseConfig = requestedPageId
     ? await getSupabaseFacebookConfigByPageId(requestedPageId)
     : await getSupabaseFacebookConfig();
+  const isPageSpecificLookup = Boolean(requestedPageId);
 
   return {
     pageId: supabaseConfig?.pageId || requestedPageId || fbRuntimeConfig.pageId || process.env.FB_PAGE_ID || "",
-    pageName: supabaseConfig?.pageName || fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "",
+    pageName:
+      supabaseConfig?.pageName || (!isPageSpecificLookup ? fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "" : ""),
     pageAccessToken:
-      supabaseConfig?.pageAccessToken || fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
+      supabaseConfig?.pageAccessToken ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "" : ""),
     businessType:
-      supabaseConfig?.businessType || fbRuntimeConfig.businessType || process.env.FB_BUSINESS_TYPE || "",
+      supabaseConfig?.businessType ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.businessType || process.env.FB_BUSINESS_TYPE || "" : ""),
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -477,6 +481,7 @@ router.post("/", async (req, res) => {
   for (const entry of req.body.entry || []) {
     for (const event of entry.messaging || []) {
       const senderId = event?.sender?.id;
+      const recipientPageId = normalizePageId(event?.recipient?.id);
       const incomingText = event?.message?.text;
       const normalizedSenderId =
         typeof senderId === "number"
@@ -501,7 +506,7 @@ router.post("/", async (req, res) => {
         senderId: normalizedSenderId,
         incomingText,
         entryId: entry?.id,
-        pageId: normalizePageId(entry?.id),
+        pageId: recipientPageId || normalizePageId(entry?.id),
       });
     }
   }
