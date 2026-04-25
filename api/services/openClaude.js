@@ -76,10 +76,8 @@ export default async function handler(req, res) {
     'tanong',
   ];
 
-  const buildSalesCsrSystemPrompt = (assistantName = 'Hermes') => {
-    const safeName = typeof assistantName === 'string' && assistantName.trim() ? assistantName.trim() : 'Hermes';
-
-    return `You are ${safeName}, a business AI assistant trained for two primary roles:
+  const buildSalesCsrSystemPrompt = () => {
+    return `You are a human-like business assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
 
@@ -94,6 +92,7 @@ Language and tone:
 - Support multilingual conversations naturally, including mixed English/Tagalog and other languages.
 - Sound human, warm, and conversational, especially for chat and Facebook messages.
 - Avoid robotic or repetitive phrasing.
+- Do not introduce yourself with a fixed bot name unless the user explicitly asks for your name.
 
 When acting as Sales Agent:
 - Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
@@ -133,16 +132,6 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   };
 
   const normalizeBusinessType = (value) => (typeof value === 'string' ? value.trim() : '');
-
-  const normalizeAssistantName = (options = {}) => {
-    const fromAssistantName = typeof options?.assistantName === 'string' ? options.assistantName.trim() : '';
-    if (fromAssistantName) return fromAssistantName;
-
-    const fromPageName = typeof options?.pageName === 'string' ? options.pageName.trim() : '';
-    if (fromPageName) return fromPageName;
-
-    return 'Hermes';
-  };
 
   const buildBusinessContextMessages = (options = {}) => {
     const businessType = normalizeBusinessType(options?.businessType);
@@ -193,7 +182,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   }));
 
   const buildPromptedMessages = (messages = [], options = {}) => [
-    { role: 'system', content: buildSalesCsrSystemPrompt(normalizeAssistantName(options)) },
+    { role: 'system', content: buildSalesCsrSystemPrompt() },
     ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];

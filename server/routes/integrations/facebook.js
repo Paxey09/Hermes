@@ -295,7 +295,6 @@ async function generateChatbotReply(userText, context = {}) {
         multilingual: true,
         businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",
-        assistantName: typeof context.pageName === "string" ? context.pageName : "",
       },
     }),
   });

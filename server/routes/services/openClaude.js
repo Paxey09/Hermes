@@ -73,10 +73,8 @@ const TOPIC_KEYWORDS = [
   "tanong",
 ];
 
-function buildSalesCsrSystemPrompt(assistantName = "Hermes") {
-  const safeName = typeof assistantName === "string" && assistantName.trim() ? assistantName.trim() : "Hermes";
-
-  return `You are ${safeName}, a business AI assistant trained for two primary roles:
+function buildSalesCsrSystemPrompt() {
+  return `You are a human-like business assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
 
@@ -91,6 +89,7 @@ Language and tone:
 - Support multilingual conversations naturally, including mixed English/Tagalog and other languages.
 - Sound human, warm, and conversational, especially for chat and Facebook messages.
 - Avoid robotic or repetitive phrasing.
+- Do not introduce yourself with a fixed bot name unless the user explicitly asks for your name.
 
 When acting as Sales Agent:
 - Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
@@ -122,16 +121,6 @@ function getLatestUserMessage(messages = []) {
 
 function normalizeBusinessType(value) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeAssistantName(options = {}) {
-  const fromAssistantName = typeof options?.assistantName === "string" ? options.assistantName.trim() : "";
-  if (fromAssistantName) return fromAssistantName;
-
-  const fromPageName = typeof options?.pageName === "string" ? options.pageName.trim() : "";
-  if (fromPageName) return fromPageName;
-
-  return "Hermes";
 }
 
 function buildBusinessContextMessages(options = {}) {
@@ -198,10 +187,8 @@ function normalizeMessages(messages = []) {
 }
 
 function buildPromptedMessages(messages = [], options = {}) {
-  const assistantName = normalizeAssistantName(options);
-
   return [
-    { role: "system", content: buildSalesCsrSystemPrompt(assistantName) },
+    { role: "system", content: buildSalesCsrSystemPrompt() },
     ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];
