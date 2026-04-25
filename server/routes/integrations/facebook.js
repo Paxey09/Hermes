@@ -261,13 +261,33 @@ function extractReplyText(result) {
 
   if (Array.isArray(result.content) && result.content.length > 0) {
     const textPart = result.content.find((part) => part?.type === "text");
-    if (textPart?.text) return textPart.text;
+    if (textPart?.text) return compactFacebookReply(textPart.text);
   }
 
-  if (typeof result.message === "string") return result.message;
-  if (typeof result.text === "string") return result.text;
+  if (typeof result.message === "string") return compactFacebookReply(result.message);
+  if (typeof result.text === "string") return compactFacebookReply(result.text);
 
   return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
+}
+
+function compactFacebookReply(rawText) {
+  let cleaned = typeof rawText === "string" ? rawText : String(rawText || "");
+  cleaned = cleaned.trim();
+
+  // Remove common meta wrappers that make replies sound robotic.
+  cleaned = cleaned.replace(/^based on the context provided[^\n]*\n?/i, "");
+  cleaned = cleaned.replace(/^here'?s a possible response[:\s]*/i, "");
+  cleaned = cleaned.replace(/^"|"$/g, "");
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+  const maxChars = 420;
+  if (cleaned.length > maxChars) {
+    const short = cleaned.slice(0, maxChars);
+    const lastSentenceEnd = Math.max(short.lastIndexOf("."), short.lastIndexOf("!"), short.lastIndexOf("?"));
+    cleaned = lastSentenceEnd > 120 ? short.slice(0, lastSentenceEnd + 1).trim() : `${short.trim()}...`;
+  }
+
+  return cleaned || "Sige, paano kita matutulungan ngayon?";
 }
 
 async function generateChatbotReply(userText, context = {}) {
@@ -289,7 +309,7 @@ async function generateChatbotReply(userText, context = {}) {
       ],
       model: "claude-3-sonnet-20240229",
       options: {
-        maxTokens: 500,
+        maxTokens: 220,
         temperature: 0.65,
         channel: "facebook",
         multilingual: true,

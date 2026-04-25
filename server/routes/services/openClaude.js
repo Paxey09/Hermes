@@ -153,6 +153,25 @@ function buildBusinessContextMessages(options = {}) {
   ];
 }
 
+function buildChannelStyleMessages(options = {}) {
+  if (options?.channel !== "facebook") {
+    return [];
+  }
+
+  return [
+    {
+      role: "system",
+      content: `Channel style for Facebook Messenger:
+- Reply like a real person in chat: natural, warm, and direct.
+- Keep replies short by default: 1-3 sentences, max 80 words.
+- Mirror the user's language style (Tagalog, English, or Taglish).
+- Do not use meta phrases like "Based on the context provided", "Here's a possible response", or "As an AI".
+- Do not output long templates, numbered lists, or formal scripts unless the user asks for detailed format.
+- Give one clear answer, then ask one short follow-up question only when needed.`,
+    },
+  ];
+}
+
 function isInSupportedScope(text, options = {}) {
   if (options?.channel === "facebook" || options?.multilingual === true) {
     return true;
@@ -190,6 +209,7 @@ function buildPromptedMessages(messages = [], options = {}) {
   return [
     { role: "system", content: buildSalesCsrSystemPrompt() },
     ...buildBusinessContextMessages(options),
+    ...buildChannelStyleMessages(options),
     ...normalizeMessages(messages),
   ];
 }
