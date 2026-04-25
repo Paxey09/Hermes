@@ -12,6 +12,7 @@ function Admin_FacebookConnect() {
   const [success, setSuccess] = useState('');
 
   const [form, setForm] = useState({
+    pageId: '',
     pageName: '',
     businessType: '',
     generatedToken: '',
@@ -27,6 +28,7 @@ function Admin_FacebookConnect() {
       setStatus(data);
       setForm((current) => ({
         ...current,
+        pageId: data.pageId || current.pageId,
         pageName: data.pageName || current.pageName,
         businessType: data.businessType || current.businessType,
       }));
@@ -60,6 +62,7 @@ function Admin_FacebookConnect() {
 
     try {
       const data = await facebookIntegrationService.connectPage({
+        pageId: form.pageId,
         pageName: form.pageName,
         businessType: form.businessType,
         pageAccessToken: form.generatedToken,
@@ -126,7 +129,7 @@ function Admin_FacebookConnect() {
       <div className="fb-connect-page">
         <div className="fb-connect-header">
           <h2>Facebook Page Integration</h2>
-          <p>Use your webhook URL and test token here, then add a page with only its name and generated token.</p>
+          <p>Use your webhook URL and test token here, then add each page with its Page ID, name, business type, and generated token.</p>
         </div>
 
         <div className="fb-connect-status-card">
@@ -142,6 +145,9 @@ function Admin_FacebookConnect() {
             </div>
             <div>
               <strong>Test Token:</strong> {testToken}
+            </div>
+            <div>
+              <strong>Page ID:</strong> {status?.pageId || 'Not set'}
             </div>
             <div>
               <strong>Page Name:</strong> {status?.pageName || 'Not set'}
@@ -234,6 +240,18 @@ function Admin_FacebookConnect() {
 
         <form className="fb-connect-form" onSubmit={onSubmit}>
           <div className="fb-form-grid">
+            <label>
+              <span>Facebook Page ID</span>
+              <input
+                type="text"
+                name="pageId"
+                value={form.pageId}
+                onChange={onChange}
+                placeholder="102428222282366"
+                required
+              />
+            </label>
+
             <label>
               <span>Facebook Page Name</span>
               <input

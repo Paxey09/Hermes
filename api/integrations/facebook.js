@@ -17,6 +17,12 @@ function normalizeAccessMode(value) {
   return typeof value === "string" && value.trim().toLowerCase() === "disable" ? "disable" : "enable";
 }
 
+function normalizePageId(value) {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value.trim();
+  return "";
+}
+
 function getNormalizedSupabaseRecord(record = {}) {
   const pageAccessToken =
     (typeof record.fb_token === "string" && record.fb_token.trim()) ||
@@ -65,6 +71,37 @@ async function getSupabaseFacebookConfig() {
   return getNormalizedSupabaseRecord(data[0]);
 }
 
+async function getSupabaseFacebookConfigByPageId(pageId) {
+  if (!supabaseClient) {
+    return null;
+  }
+
+  const normalizedPageId = normalizePageId(pageId);
+  if (!normalizedPageId) {
+    return null;
+  }
+
+  const matchColumns = ["page_id", "fb_page_id", "id"];
+  for (const column of matchColumns) {
+    const { data, error } = await supabaseClient
+      .from("fb_pages")
+      .select("*")
+      .eq(column, normalizedPageId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      continue;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      return getNormalizedSupabaseRecord(data[0]);
+    }
+  }
+
+  return null;
+}
+
 async function getSupabaseFacebookPages() {
   if (!supabaseClient) {
     return [];
@@ -88,14 +125,23 @@ async function saveSupabasePageToken(payload = {}) {
     throw new Error("Supabase credentials are missing on server.");
   }
 
+  const normalizedPageId = normalizePageId(payload.pageId);
+
   const record = {
+    page_id: normalizedPageId || null,
     fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
     business_type: typeof payload.businessType === "string" ? payload.businessType.trim() : "",
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
-  const { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+  let { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+
+  if (insertError && /column\s+"?page_id"?\s+does not exist/i.test(insertError.message || "")) {
+    const { page_id, ...legacyRecord } = record;
+    const fallbackInsert = await supabaseClient.from("fb_pages").insert(legacyRecord);
+    insertError = fallbackInsert.error;
+  }
 
   if (insertError) {
     throw new Error(`Failed to insert fb_pages token: ${insertError.message}`);
@@ -107,7 +153,7 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
     throw new Error("Supabase credentials are missing on server.");
   }
 
-  const normalizedPageId = typeof pageId === "string" ? pageId.trim() : String(pageId || "").trim();
+  const normalizedPageId = normalizePageId(pageId);
   if (!normalizedPageId) {
     throw new Error("pageId is required");
   }
@@ -135,11 +181,14 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
   throw new Error("Failed to update access mode. Page not found.");
 }
 
-async function getConfig() {
-  const supabaseConfig = await getSupabaseFacebookConfig();
+async function getConfig(options = {}) {
+  const requestedPageId = normalizePageId(options.pageId);
+  const supabaseConfig = requestedPageId
+    ? (await getSupabaseFacebookConfigByPageId(requestedPageId)) || (await getSupabaseFacebookConfig())
+    : await getSupabaseFacebookConfig();
 
   return {
-    pageId: supabaseConfig?.pageId || runtimeConfig.pageId || process.env.FB_PAGE_ID || "",
+    pageId: supabaseConfig?.pageId || requestedPageId || runtimeConfig.pageId || process.env.FB_PAGE_ID || "",
     pageName: supabaseConfig?.pageName || runtimeConfig.pageName || process.env.FB_PAGE_NAME || "",
     pageAccessToken:
       supabaseConfig?.pageAccessToken || runtimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
@@ -152,7 +201,8 @@ async function getConfig() {
 }
 
 function saveConfig(payload = {}) {
-  if (typeof payload.pageId === "string") runtimeConfig.pageId = payload.pageId.trim();
+  const normalizedPageId = normalizePageId(payload.pageId);
+  if (normalizedPageId) runtimeConfig.pageId = normalizedPageId;
   if (typeof payload.pageName === "string") runtimeConfig.pageName = payload.pageName.trim();
   if (typeof payload.pageAccessToken === "string") runtimeConfig.pageAccessToken = payload.pageAccessToken.trim();
   if (typeof payload.businessType === "string") runtimeConfig.businessType = payload.businessType.trim();
@@ -214,7 +264,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { action, pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode } = req.body || {};
+    const { action, pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode, businessType } = req.body || {};
 
     if (action === "updateAccessMode") {
       try {
@@ -240,10 +290,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "pageAccessToken and verifyToken are required" });
     }
 
-    saveConfig({ pageId, pageName, verifyToken, appSecret });
+    saveConfig({ pageId, pageName, verifyToken, appSecret, businessType });
 
     try {
-      await saveSupabasePageToken({ pageName, pageAccessToken, accessMode });
+      await saveSupabasePageToken({ pageId, pageName, pageAccessToken, accessMode, businessType });
     } catch (error) {
       return res.status(500).json({
         error: error.message || "Failed to save Facebook Page token to Supabase",

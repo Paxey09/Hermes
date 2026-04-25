@@ -22,6 +22,12 @@ function normalizeAccessMode(value) {
   return typeof value === "string" && value.trim().toLowerCase() === "disable" ? "disable" : "enable";
 }
 
+function normalizePageId(value) {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value.trim();
+  return "";
+}
+
 function getNormalizedSupabaseRecord(record = {}) {
   const pageAccessToken =
     (typeof record.fb_token === "string" && record.fb_token.trim()) ||
@@ -70,6 +76,37 @@ async function getSupabaseFacebookConfig() {
   return getNormalizedSupabaseRecord(data[0]);
 }
 
+async function getSupabaseFacebookConfigByPageId(pageId) {
+  if (!supabaseClient) {
+    return null;
+  }
+
+  const normalizedPageId = normalizePageId(pageId);
+  if (!normalizedPageId) {
+    return null;
+  }
+
+  const matchColumns = ["page_id", "fb_page_id", "id"];
+  for (const column of matchColumns) {
+    const { data, error } = await supabaseClient
+      .from("fb_pages")
+      .select("*")
+      .eq(column, normalizedPageId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      continue;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      return getNormalizedSupabaseRecord(data[0]);
+    }
+  }
+
+  return null;
+}
+
 async function getSupabaseFacebookPages() {
   if (!supabaseClient) {
     return [];
@@ -93,14 +130,23 @@ async function saveSupabasePageToken(payload = {}) {
     throw new Error("Supabase credentials are missing on server.");
   }
 
+  const normalizedPageId = normalizePageId(payload.pageId);
+
   const record = {
+    page_id: normalizedPageId || null,
     fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
     fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
     business_type: typeof payload.businessType === "string" ? payload.businessType.trim() : "",
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
-  const { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+  let { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+
+  if (insertError && /column\s+"?page_id"?\s+does not exist/i.test(insertError.message || "")) {
+    const { page_id, ...legacyRecord } = record;
+    const fallbackInsert = await supabaseClient.from("fb_pages").insert(legacyRecord);
+    insertError = fallbackInsert.error;
+  }
 
   if (insertError) {
     throw new Error(`Failed to insert fb_pages token: ${insertError.message}`);
@@ -112,7 +158,7 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
     throw new Error("Supabase credentials are missing on server.");
   }
 
-  const normalizedPageId = typeof pageId === "string" ? pageId.trim() : String(pageId || "").trim();
+  const normalizedPageId = normalizePageId(pageId);
   if (!normalizedPageId) {
     throw new Error("pageId is required");
   }
@@ -140,11 +186,14 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
   throw new Error("Failed to update access mode. Page not found.");
 }
 
-async function getFacebookConfig() {
-  const supabaseConfig = await getSupabaseFacebookConfig();
+async function getFacebookConfig(options = {}) {
+  const requestedPageId = normalizePageId(options.pageId);
+  const supabaseConfig = requestedPageId
+    ? (await getSupabaseFacebookConfigByPageId(requestedPageId)) || (await getSupabaseFacebookConfig())
+    : await getSupabaseFacebookConfig();
 
   return {
-    pageId: supabaseConfig?.pageId || fbRuntimeConfig.pageId || process.env.FB_PAGE_ID || "",
+    pageId: supabaseConfig?.pageId || requestedPageId || fbRuntimeConfig.pageId || process.env.FB_PAGE_ID || "",
     pageName: supabaseConfig?.pageName || fbRuntimeConfig.pageName || process.env.FB_PAGE_NAME || "",
     pageAccessToken:
       supabaseConfig?.pageAccessToken || fbRuntimeConfig.pageAccessToken || process.env.FB_PAGE_ACCESS_TOKEN || "",
@@ -157,7 +206,8 @@ async function getFacebookConfig() {
 }
 
 function saveRuntimeConfig(payload = {}) {
-  if (typeof payload.pageId === "string") fbRuntimeConfig.pageId = payload.pageId.trim();
+  const normalizedPageId = normalizePageId(payload.pageId);
+  if (normalizedPageId) fbRuntimeConfig.pageId = normalizedPageId;
   if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = payload.pageName.trim();
   if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = payload.pageAccessToken.trim();
   if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = payload.businessType.trim();
@@ -252,9 +302,10 @@ async function generateChatbotReply(userText, context = {}) {
   return extractReplyText(result);
 }
 
-async function sendFacebookMessage(recipientId, text) {
-  const config = await getFacebookConfig();
-  const pageAccessToken = config.pageAccessToken;
+async function sendFacebookMessage(recipientId, text, context = {}) {
+  const pageAccessToken =
+    (typeof context.pageAccessToken === "string" && context.pageAccessToken.trim()) ||
+    (await getFacebookConfig({ pageId: context.pageId })).pageAccessToken;
 
   if (!pageAccessToken) {
     throw new Error("Missing Facebook Page token from Supabase (fb_pages.fb_token)");
@@ -331,7 +382,7 @@ router.get("/admin/status", async (req, res) => {
 });
 
 router.post("/admin/connect", async (req, res) => {
-  const { pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode } = req.body || {};
+  const { pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode, businessType } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
     return res.status(400).json({
@@ -339,10 +390,10 @@ router.post("/admin/connect", async (req, res) => {
     });
   }
 
-  saveRuntimeConfig({ pageId, pageName, verifyToken, appSecret });
+  saveRuntimeConfig({ pageId, pageName, verifyToken, appSecret, businessType });
 
   try {
-    await saveSupabasePageToken({ pageName, pageAccessToken, accessMode });
+    await saveSupabasePageToken({ pageId, pageName, pageAccessToken, accessMode, businessType });
   } catch (error) {
     return res.status(500).json({
       error: error.message || "Failed to save Facebook Page token to Supabase",
@@ -446,7 +497,12 @@ router.post("/", async (req, res) => {
         continue;
       }
 
-      messageEvents.push({ senderId: normalizedSenderId, incomingText, entryId: entry?.id });
+      messageEvents.push({
+        senderId: normalizedSenderId,
+        incomingText,
+        entryId: entry?.id,
+        pageId: normalizePageId(entry?.id),
+      });
     }
   }
 
@@ -457,33 +513,48 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  const facebookConfig = await getFacebookConfig();
-  const chatbotEnabled = facebookConfig.accessMode !== "disable";
-  const businessType = facebookConfig.businessType || "";
+  const pageConfigCache = new Map();
+
+  async function getCachedPageConfig(pageId) {
+    const cacheKey = normalizePageId(pageId) || "default";
+    if (!pageConfigCache.has(cacheKey)) {
+      pageConfigCache.set(cacheKey, await getFacebookConfig({ pageId }));
+    }
+    return pageConfigCache.get(cacheKey);
+  }
 
   void Promise.allSettled(
-    messageEvents.map(async ({ senderId, incomingText, entryId }) => {
+    messageEvents.map(async ({ senderId, incomingText, entryId, pageId }) => {
       try {
+        const pageConfig = await getCachedPageConfig(pageId);
+        const chatbotEnabled = pageConfig.accessMode !== "disable";
+        const businessType = pageConfig.businessType || "";
         const replyText = chatbotEnabled
           ? await generateChatbotReply(incomingText, { businessType })
           : "Chatbot not available. Contact the admin.";
-        await sendFacebookMessage(senderId, replyText);
+        await sendFacebookMessage(senderId, replyText, {
+          pageId: pageConfig.pageId,
+          pageAccessToken: pageConfig.pageAccessToken,
+        });
       } catch (error) {
         console.error("Facebook webhook reply error:", {
           message: error.message,
           senderId,
           entryId,
+          pageId,
         });
         try {
           await sendFacebookMessage(
             senderId,
-            "I can only help with CRM, ERP, appointment booking, data analytics & market research, and email marketing."
+            "I can only help with CRM, ERP, appointment booking, data analytics & market research, and email marketing.",
+            { pageId }
           );
         } catch (fallbackError) {
           console.error("Facebook webhook fallback send error:", {
             message: fallbackError.message,
             senderId,
             entryId,
+            pageId,
           });
         }
       }
