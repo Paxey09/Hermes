@@ -73,7 +73,10 @@ const TOPIC_KEYWORDS = [
   "tanong",
 ];
 
-const SALES_CSR_SYSTEM_PROMPT = `You are Hermes, a business AI assistant trained for two primary roles:
+function buildSalesCsrSystemPrompt(assistantName = "Hermes") {
+  const safeName = typeof assistantName === "string" && assistantName.trim() ? assistantName.trim() : "Hermes";
+
+  return `You are ${safeName}, a business AI assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
 
@@ -106,6 +109,7 @@ Response format preference:
 - End with one concise follow-up question when needed.
 
 Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
+}
 
 function getLatestUserMessage(messages = []) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -118,6 +122,16 @@ function getLatestUserMessage(messages = []) {
 
 function normalizeBusinessType(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeAssistantName(options = {}) {
+  const fromAssistantName = typeof options?.assistantName === "string" ? options.assistantName.trim() : "";
+  if (fromAssistantName) return fromAssistantName;
+
+  const fromPageName = typeof options?.pageName === "string" ? options.pageName.trim() : "";
+  if (fromPageName) return fromPageName;
+
+  return "Hermes";
 }
 
 function buildBusinessContextMessages(options = {}) {
@@ -184,8 +198,10 @@ function normalizeMessages(messages = []) {
 }
 
 function buildPromptedMessages(messages = [], options = {}) {
+  const assistantName = normalizeAssistantName(options);
+
   return [
-    { role: "system", content: SALES_CSR_SYSTEM_PROMPT },
+    { role: "system", content: buildSalesCsrSystemPrompt(assistantName) },
     ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];

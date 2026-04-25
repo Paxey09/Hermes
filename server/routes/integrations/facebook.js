@@ -294,6 +294,8 @@ async function generateChatbotReply(userText, context = {}) {
         channel: "facebook",
         multilingual: true,
         businessType: typeof context.businessType === "string" ? context.businessType : "",
+        pageName: typeof context.pageName === "string" ? context.pageName : "",
+        assistantName: typeof context.pageName === "string" ? context.pageName : "",
       },
     }),
   });
@@ -534,8 +536,9 @@ router.post("/", async (req, res) => {
         const pageConfig = await getCachedPageConfig(pageId);
         const chatbotEnabled = pageConfig.accessMode !== "disable";
         const businessType = pageConfig.businessType || "";
+        const pageName = pageConfig.pageName || "";
         const replyText = chatbotEnabled
-          ? await generateChatbotReply(incomingText, { businessType })
+          ? await generateChatbotReply(incomingText, { businessType, pageName })
           : "Chatbot not available. Contact the admin.";
         await sendFacebookMessage(senderId, replyText, {
           pageId: pageConfig.pageId,

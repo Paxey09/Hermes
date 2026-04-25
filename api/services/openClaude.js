@@ -76,7 +76,10 @@ export default async function handler(req, res) {
     'tanong',
   ];
 
-  const SALES_CSR_SYSTEM_PROMPT = `You are Hermes, a business AI assistant trained for two primary roles:
+  const buildSalesCsrSystemPrompt = (assistantName = 'Hermes') => {
+    const safeName = typeof assistantName === 'string' && assistantName.trim() ? assistantName.trim() : 'Hermes';
+
+    return `You are ${safeName}, a business AI assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
 
@@ -109,6 +112,7 @@ Response format preference:
 - End with one concise follow-up question when needed.
 
 Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
+  };
 
   const getLatestUserMessage = (messages = []) => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -129,6 +133,16 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   };
 
   const normalizeBusinessType = (value) => (typeof value === 'string' ? value.trim() : '');
+
+  const normalizeAssistantName = (options = {}) => {
+    const fromAssistantName = typeof options?.assistantName === 'string' ? options.assistantName.trim() : '';
+    if (fromAssistantName) return fromAssistantName;
+
+    const fromPageName = typeof options?.pageName === 'string' ? options.pageName.trim() : '';
+    if (fromPageName) return fromPageName;
+
+    return 'Hermes';
+  };
 
   const buildBusinessContextMessages = (options = {}) => {
     const businessType = normalizeBusinessType(options?.businessType);
@@ -179,7 +193,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   }));
 
   const buildPromptedMessages = (messages = [], options = {}) => [
-    { role: 'system', content: SALES_CSR_SYSTEM_PROMPT },
+    { role: 'system', content: buildSalesCsrSystemPrompt(normalizeAssistantName(options)) },
     ...buildBusinessContextMessages(options),
     ...normalizeMessages(messages),
   ];
