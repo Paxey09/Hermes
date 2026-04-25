@@ -184,7 +184,7 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
 async function getConfig(options = {}) {
   const requestedPageId = normalizePageId(options.pageId);
   const supabaseConfig = requestedPageId
-    ? (await getSupabaseFacebookConfigByPageId(requestedPageId)) || (await getSupabaseFacebookConfig())
+    ? await getSupabaseFacebookConfigByPageId(requestedPageId)
     : await getSupabaseFacebookConfig();
 
   return {
