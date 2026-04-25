@@ -5,6 +5,10 @@ const { createClient } = require("@supabase/supabase-js");
 const router = express.Router();
 
 const FB_GRAPH_API_BASE = "https://graph.facebook.com/v22.0";
+const CONVERSATION_TTL_MS = 30 * 60 * 1000;
+const CONVERSATION_MAX_MESSAGES = 8;
+const conversationMemory = new Map();
+
 const fbRuntimeConfig = {
   pageId: "",
   pageName: "",
@@ -26,6 +30,44 @@ function normalizePageId(value) {
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value.trim();
   return "";
+}
+
+function buildConversationKey(pageId, senderId) {
+  const normalizedPageId = normalizePageId(pageId) || "default";
+  const normalizedSenderId = typeof senderId === "string" ? senderId.trim() : String(senderId || "").trim();
+  return `${normalizedPageId}:${normalizedSenderId}`;
+}
+
+function getConversationHistory(pageId, senderId) {
+  const key = buildConversationKey(pageId, senderId);
+  const cached = conversationMemory.get(key);
+
+  if (!cached) {
+    return [];
+  }
+
+  if (Date.now() - cached.updatedAt > CONVERSATION_TTL_MS) {
+    conversationMemory.delete(key);
+    return [];
+  }
+
+  return Array.isArray(cached.messages) ? cached.messages : [];
+}
+
+function setConversationHistory(pageId, senderId, messages = []) {
+  const key = buildConversationKey(pageId, senderId);
+  const normalizedMessages = Array.isArray(messages)
+    ? messages
+        .filter((msg) => msg && (msg.role === "user" || msg.role === "assistant") && typeof msg.content === "string")
+        .map((msg) => ({ role: msg.role, content: msg.content.trim() }))
+        .filter((msg) => msg.content)
+    : [];
+
+  const sliced = normalizedMessages.slice(-CONVERSATION_MAX_MESSAGES);
+  conversationMemory.set(key, {
+    updatedAt: Date.now(),
+    messages: sliced,
+  });
 }
 
 function getNormalizedSupabaseRecord(record = {}) {
@@ -290,7 +332,16 @@ function compactFacebookReply(rawText) {
   return cleaned || "Sige, paano kita matutulungan ngayon?";
 }
 
-async function generateChatbotReply(userText, context = {}) {
+async function generateChatbotReply(input, context = {}) {
+  const messages = Array.isArray(input)
+    ? input
+    : [
+        {
+          role: "user",
+          content: typeof input === "string" ? input : String(input || ""),
+        },
+      ];
+
   const chatEndpoint =
     process.env.INTERNAL_CHATBOT_URL ||
     `http://127.0.0.1:${process.env.PORT || 5000}/api/openclaude/chat`;
@@ -301,12 +352,7 @@ async function generateChatbotReply(userText, context = {}) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      messages: [
-        {
-          role: "user",
-          content: userText,
-        },
-      ],
+      messages,
       model: "claude-3-sonnet-20240229",
       options: {
         maxTokens: 220,
@@ -556,9 +602,20 @@ router.post("/", async (req, res) => {
         const chatbotEnabled = pageConfig.accessMode !== "disable";
         const businessType = pageConfig.businessType || "";
         const pageName = pageConfig.pageName || "";
+        const memoryPageId = pageConfig.pageId || pageId;
+        const history = getConversationHistory(memoryPageId, senderId);
+        const requestMessages = [...history, { role: "user", content: incomingText }];
         const replyText = chatbotEnabled
-          ? await generateChatbotReply(incomingText, { businessType, pageName })
+          ? await generateChatbotReply(requestMessages, { businessType, pageName })
           : "Chatbot not available. Contact the admin.";
+
+        if (chatbotEnabled) {
+          setConversationHistory(memoryPageId, senderId, [
+            ...requestMessages,
+            { role: "assistant", content: replyText },
+          ]);
+        }
+
         await sendFacebookMessage(senderId, replyText, {
           pageId: pageConfig.pageId,
           pageAccessToken: pageConfig.pageAccessToken,
