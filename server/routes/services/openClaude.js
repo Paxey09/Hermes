@@ -119,15 +119,19 @@ function getLatestUserMessage(messages = []) {
   return "";
 }
 
-function normalizeBusinessType(value) {
+function normalizeContextValue(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
 function buildBusinessContextMessages(options = {}) {
-  const businessType = normalizeBusinessType(options?.businessType);
-  const pageName = normalizeBusinessType(options?.pageName);
+  const businessType = normalizeContextValue(options?.businessType);
+  const pageName = normalizeContextValue(options?.pageName);
+  const productServices = normalizeContextValue(options?.productServices);
+  const websiteLink = normalizeContextValue(options?.websiteLink);
+  const shoppeLink = normalizeContextValue(options?.shoppeLink);
+  const lazadaLink = normalizeContextValue(options?.lazadaLink);
 
-  if (!businessType && !pageName) {
+  if (!businessType && !pageName && !productServices && !websiteLink && !shoppeLink && !lazadaLink) {
     return [];
   }
 
@@ -141,8 +145,24 @@ function buildBusinessContextMessages(options = {}) {
     contextParts.push(`Business type: ${businessType}`);
   }
 
+  if (productServices) {
+    contextParts.push(`Products/Services: ${productServices}`);
+  }
+
+  if (websiteLink) {
+    contextParts.push(`Website link: ${websiteLink}`);
+  }
+
+  if (shoppeLink) {
+    contextParts.push(`Shopee link: ${shoppeLink}`);
+  }
+
+  if (lazadaLink) {
+    contextParts.push(`Lazada link: ${lazadaLink}`);
+  }
+
   contextParts.push(
-    "Use this business context to guide examples, terminology, and recommendations. Do not invent facts about the business; if the context is too broad, ask a clarifying question."
+    "Use this business context to guide examples, terminology, and recommendations. If the user asks for website, Shopee, Lazada, or products/services, answer using the provided values exactly. Do not invent missing links or product details; say they are not available if missing."
   );
 
   return [

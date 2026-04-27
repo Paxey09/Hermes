@@ -15,6 +15,10 @@ function Admin_FacebookConnect() {
     pageId: '',
     pageName: '',
     businessType: '',
+    productServices: '',
+    websiteLink: '',
+    shoppeLink: '',
+    lazadaLink: '',
     generatedToken: '',
   });
 
@@ -31,6 +35,10 @@ function Admin_FacebookConnect() {
         pageId: data.pageId || current.pageId,
         pageName: data.pageName || current.pageName,
         businessType: data.businessType || current.businessType,
+        productServices: data.productServices || current.productServices,
+        websiteLink: data.websiteLink || current.websiteLink,
+        shoppeLink: data.shoppeLink || current.shoppeLink,
+        lazadaLink: data.lazadaLink || current.lazadaLink,
       }));
     } catch (loadError) {
       setError(loadError.message || 'Failed to load Facebook integration status.');
@@ -65,6 +73,10 @@ function Admin_FacebookConnect() {
         pageId: form.pageId,
         pageName: form.pageName,
         businessType: form.businessType,
+        productServices: form.productServices,
+        websiteLink: form.websiteLink,
+        shoppeLink: form.shoppeLink,
+        lazadaLink: form.lazadaLink,
         pageAccessToken: form.generatedToken,
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || 'enable',
@@ -156,6 +168,18 @@ function Admin_FacebookConnect() {
               <strong>Business Type:</strong> {status?.businessType || 'Not set'}
             </div>
             <div>
+              <strong>Product/Services:</strong> {status?.productServices || 'Not set'}
+            </div>
+            <div>
+              <strong>Website Link:</strong> {status?.websiteLink || 'Not set'}
+            </div>
+            <div>
+              <strong>Shopee Link:</strong> {status?.shoppeLink || 'Not set'}
+            </div>
+            <div>
+              <strong>Lazada Link:</strong> {status?.lazadaLink || 'Not set'}
+            </div>
+            <div>
               <strong>Tokens:</strong> {status?.hasPageAccessToken ? 'Configured' : 'Missing'} / {status?.hasVerifyToken ? 'Test token set' : 'Test token missing'}
             </div>
             <div>
@@ -196,6 +220,10 @@ function Admin_FacebookConnect() {
                     <div className="fb-page-name">{page.pageName || 'Connected Facebook Page'}</div>
                     <div className="fb-page-id">{page.pageId ? `Page ID: ${page.pageId}` : webhookUrl}</div>
                     <div className="fb-page-id">{page.businessType ? `Business Type: ${page.businessType}` : 'Business Type: Not set'}</div>
+                    <div className="fb-page-id">{page.productServices ? `Product/Services: ${page.productServices}` : 'Product/Services: Not set'}</div>
+                    <div className="fb-page-id">{page.websiteLink ? `Website: ${page.websiteLink}` : 'Website: Not set'}</div>
+                    <div className="fb-page-id">{page.shoppeLink ? `Shopee: ${page.shoppeLink}` : 'Shopee: Not set'}</div>
+                    <div className="fb-page-id">{page.lazadaLink ? `Lazada: ${page.lazadaLink}` : 'Lazada: Not set'}</div>
                   </div>
                   <div className="fb-page-subscription">
                     <span className="fb-page-column-label">Webhook Subscription</span>
@@ -273,6 +301,50 @@ function Admin_FacebookConnect() {
                 onChange={onChange}
                 placeholder="Solar Energy, Retail, Real Estate"
                 required
+              />
+            </label>
+
+            <label>
+              <span>Product/Services</span>
+              <input
+                type="text"
+                name="productServices"
+                value={form.productServices}
+                onChange={onChange}
+                placeholder="Solar Panel, Installation, Maintenance"
+              />
+            </label>
+
+            <label>
+              <span>Website Link</span>
+              <input
+                type="url"
+                name="websiteLink"
+                value={form.websiteLink}
+                onChange={onChange}
+                placeholder="https://yourwebsite.com"
+              />
+            </label>
+
+            <label>
+              <span>Shopee Link</span>
+              <input
+                type="url"
+                name="shoppeLink"
+                value={form.shoppeLink}
+                onChange={onChange}
+                placeholder="https://shopee.ph/your-shop"
+              />
+            </label>
+
+            <label>
+              <span>Lazada Link</span>
+              <input
+                type="url"
+                name="lazadaLink"
+                value={form.lazadaLink}
+                onChange={onChange}
+                placeholder="https://www.lazada.com.ph/shop/your-shop"
               />
             </label>
 

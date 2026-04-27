@@ -14,6 +14,10 @@ const fbRuntimeConfig = {
   pageName: "",
   pageAccessToken: "",
   businessType: "",
+  productServices: "",
+  websiteLink: "",
+  shoppeLink: "",
+  lazadaLink: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -30,6 +34,10 @@ function normalizePageId(value) {
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value.trim();
   return "";
+}
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function buildConversationKey(pageId, senderId) {
@@ -83,6 +91,22 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.business_type === "string" && record.business_type.trim()) ||
     (typeof record.businessType === "string" && record.businessType.trim()) ||
     "";
+  const productServices =
+    (typeof record.product_services === "string" && record.product_services.trim()) ||
+    (typeof record.productServices === "string" && record.productServices.trim()) ||
+    "";
+  const websiteLink =
+    (typeof record.website_link === "string" && record.website_link.trim()) ||
+    (typeof record.websiteLink === "string" && record.websiteLink.trim()) ||
+    "";
+  const shoppeLink =
+    (typeof record.shoppe_link === "string" && record.shoppe_link.trim()) ||
+    (typeof record.shoppeLink === "string" && record.shoppeLink.trim()) ||
+    "";
+  const lazadaLink =
+    (typeof record.lazada_link === "string" && record.lazada_link.trim()) ||
+    (typeof record.lazadaLink === "string" && record.lazadaLink.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -91,6 +115,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     pageName,
     pageAccessToken,
     businessType,
+    productServices,
+    websiteLink,
+    shoppeLink,
+    lazadaLink,
     accessMode,
   };
 }
@@ -176,18 +204,36 @@ async function saveSupabasePageToken(payload = {}) {
 
   const record = {
     page_id: normalizedPageId || null,
-    fb_name: typeof payload.pageName === "string" ? payload.pageName.trim() : "",
-    fb_token: typeof payload.pageAccessToken === "string" ? payload.pageAccessToken.trim() : "",
-    business_type: typeof payload.businessType === "string" ? payload.businessType.trim() : "",
+    fb_name: normalizeText(payload.pageName),
+    fb_token: normalizeText(payload.pageAccessToken),
+    business_type: normalizeText(payload.businessType),
+    product_services: normalizeText(payload.productServices),
+    website_link: normalizeText(payload.websiteLink),
+    shoppe_link: normalizeText(payload.shoppeLink),
+    lazada_link: normalizeText(payload.lazadaLink),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
-  let { error: insertError } = await supabaseClient.from("fb_pages").insert(record);
+  let insertPayload = { ...record };
+  let insertError = null;
 
-  if (insertError && /column\s+"?page_id"?\s+does not exist/i.test(insertError.message || "")) {
-    const { page_id, ...legacyRecord } = record;
-    const fallbackInsert = await supabaseClient.from("fb_pages").insert(legacyRecord);
-    insertError = fallbackInsert.error;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const { error } = await supabaseClient.from("fb_pages").insert(insertPayload);
+
+    if (!error) {
+      insertError = null;
+      break;
+    }
+
+    insertError = error;
+    const missingColumnMatch = /column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i.exec(error.message || "");
+
+    if (missingColumnMatch?.[1] && Object.prototype.hasOwnProperty.call(insertPayload, missingColumnMatch[1])) {
+      delete insertPayload[missingColumnMatch[1]];
+      continue;
+    }
+
+    break;
   }
 
   if (insertError) {
@@ -245,6 +291,18 @@ async function getFacebookConfig(options = {}) {
     businessType:
       supabaseConfig?.businessType ||
       (!isPageSpecificLookup ? fbRuntimeConfig.businessType || process.env.FB_BUSINESS_TYPE || "" : ""),
+    productServices:
+      supabaseConfig?.productServices ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.productServices || process.env.FB_PRODUCT_SERVICES || "" : ""),
+    websiteLink:
+      supabaseConfig?.websiteLink ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.websiteLink || process.env.FB_WEBSITE_LINK || "" : ""),
+    shoppeLink:
+      supabaseConfig?.shoppeLink ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.shoppeLink || process.env.FB_SHOPPE_LINK || "" : ""),
+    lazadaLink:
+      supabaseConfig?.lazadaLink ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.lazadaLink || process.env.FB_LAZADA_LINK || "" : ""),
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -254,11 +312,15 @@ async function getFacebookConfig(options = {}) {
 function saveRuntimeConfig(payload = {}) {
   const normalizedPageId = normalizePageId(payload.pageId);
   if (normalizedPageId) fbRuntimeConfig.pageId = normalizedPageId;
-  if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = payload.pageName.trim();
-  if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = payload.pageAccessToken.trim();
-  if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = payload.businessType.trim();
-  if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = payload.verifyToken.trim();
-  if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = payload.appSecret.trim();
+  if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = normalizeText(payload.pageName);
+  if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = normalizeText(payload.pageAccessToken);
+  if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = normalizeText(payload.businessType);
+  if (typeof payload.productServices === "string") fbRuntimeConfig.productServices = normalizeText(payload.productServices);
+  if (typeof payload.websiteLink === "string") fbRuntimeConfig.websiteLink = normalizeText(payload.websiteLink);
+  if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
+  if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
+  if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = normalizeText(payload.verifyToken);
+  if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = normalizeText(payload.appSecret);
 }
 
 function getPublicBaseUrl(req) {
@@ -361,6 +423,10 @@ async function generateChatbotReply(input, context = {}) {
         multilingual: true,
         businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",
+        productServices: typeof context.productServices === "string" ? context.productServices : "",
+        websiteLink: typeof context.websiteLink === "string" ? context.websiteLink : "",
+        shoppeLink: typeof context.shoppeLink === "string" ? context.shoppeLink : "",
+        lazadaLink: typeof context.lazadaLink === "string" ? context.lazadaLink : "",
       },
     }),
   });
@@ -436,6 +502,10 @@ router.get("/admin/status", async (req, res) => {
     pageId: config.pageId || null,
     pageName: config.pageName || null,
     businessType: config.businessType || null,
+    productServices: config.productServices || null,
+    websiteLink: config.websiteLink || null,
+    shoppeLink: config.shoppeLink || null,
+    lazadaLink: config.lazadaLink || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -453,7 +523,19 @@ router.get("/admin/status", async (req, res) => {
 });
 
 router.post("/admin/connect", async (req, res) => {
-  const { pageId, pageName, pageAccessToken, verifyToken, appSecret, accessMode, businessType } = req.body || {};
+  const {
+    pageId,
+    pageName,
+    pageAccessToken,
+    verifyToken,
+    appSecret,
+    accessMode,
+    businessType,
+    productServices,
+    websiteLink,
+    shoppeLink,
+    lazadaLink,
+  } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
     return res.status(400).json({
@@ -461,10 +543,30 @@ router.post("/admin/connect", async (req, res) => {
     });
   }
 
-  saveRuntimeConfig({ pageId, pageName, verifyToken, appSecret, businessType });
+  saveRuntimeConfig({
+    pageId,
+    pageName,
+    verifyToken,
+    appSecret,
+    businessType,
+    productServices,
+    websiteLink,
+    shoppeLink,
+    lazadaLink,
+  });
 
   try {
-    await saveSupabasePageToken({ pageId, pageName, pageAccessToken, accessMode, businessType });
+    await saveSupabasePageToken({
+      pageId,
+      pageName,
+      pageAccessToken,
+      accessMode,
+      businessType,
+      productServices,
+      websiteLink,
+      shoppeLink,
+      lazadaLink,
+    });
   } catch (error) {
     return res.status(500).json({
       error: error.message || "Failed to save Facebook Page token to Supabase",
@@ -481,6 +583,10 @@ router.post("/admin/connect", async (req, res) => {
     pageId: config.pageId || null,
     pageName: config.pageName || null,
     businessType: config.businessType || null,
+    productServices: config.productServices || null,
+    websiteLink: config.websiteLink || null,
+    shoppeLink: config.shoppeLink || null,
+    lazadaLink: config.lazadaLink || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -602,11 +708,22 @@ router.post("/", async (req, res) => {
         const chatbotEnabled = pageConfig.accessMode !== "disable";
         const businessType = pageConfig.businessType || "";
         const pageName = pageConfig.pageName || "";
+        const productServices = pageConfig.productServices || "";
+        const websiteLink = pageConfig.websiteLink || "";
+        const shoppeLink = pageConfig.shoppeLink || "";
+        const lazadaLink = pageConfig.lazadaLink || "";
         const memoryPageId = pageConfig.pageId || pageId;
         const history = getConversationHistory(memoryPageId, senderId);
         const requestMessages = [...history, { role: "user", content: incomingText }];
         const replyText = chatbotEnabled
-          ? await generateChatbotReply(requestMessages, { businessType, pageName })
+          ? await generateChatbotReply(requestMessages, {
+              businessType,
+              pageName,
+              productServices,
+              websiteLink,
+              shoppeLink,
+              lazadaLink,
+            })
           : "Chatbot not available. Contact the admin.";
 
         if (chatbotEnabled) {
