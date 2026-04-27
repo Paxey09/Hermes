@@ -112,10 +112,8 @@ function Admin_FacebookConnect() {
 
   const webhookUrl = status?.webhookUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/facebook` : '');
   const testToken = status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {});
-  const generatedTokenValue = form.generatedToken || status?.pageAccessTokenMasked || '••••••••';
 
   const toReadableMode = (mode) => (String(mode || '').toLowerCase() === 'disable' ? 'Disable' : 'Enable');
-  const displayValue = (value, fallback = 'Not set') => (value ? value : fallback);
 
   const toggleAccessMode = async (page) => {
     const pageId = page?.pageId;
@@ -237,33 +235,6 @@ function Admin_FacebookConnect() {
             </div>
             <div>
               <strong>Test Token:</strong> {testToken}
-            </div>
-            <div>
-              <strong>Page ID:</strong> {status?.pageId || 'Not set'}
-            </div>
-            <div>
-              <strong>Page Name:</strong> {status?.pageName || 'Not set'}
-            </div>
-            <div>
-              <strong>Business Type:</strong> {status?.businessType || 'Not set'}
-            </div>
-            <div>
-              <strong>Product/Services:</strong> {status?.productServices || 'Not set'}
-            </div>
-            <div>
-              <strong>Website Link:</strong> {status?.websiteLink || 'Not set'}
-            </div>
-            <div>
-              <strong>Shopee Link:</strong> {status?.shoppeLink || 'Not set'}
-            </div>
-            <div>
-              <strong>Lazada Link:</strong> {status?.lazadaLink || 'Not set'}
-            </div>
-            <div>
-              <strong>Tokens:</strong> {status?.hasPageAccessToken ? 'Configured' : 'Missing'} / {status?.hasVerifyToken ? 'Test token set' : 'Test token missing'}
-            </div>
-            <div>
-              <strong>Access Mode:</strong> {toReadableMode(status?.accessMode)}
             </div>
           </div>
           {status?.note && <p className="fb-status-note">{status.note}</p>}
