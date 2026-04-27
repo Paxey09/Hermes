@@ -214,6 +214,34 @@ class FacebookIntegrationService {
       }
     }
   }
+
+  async updatePageDetails(pageId, payload = {}) {
+    try {
+      const data = await this.request('/webhooks/facebook/admin/page-details', {
+        method: 'POST',
+        body: JSON.stringify({ pageId, ...payload }),
+      });
+
+      return this.writeCache({
+        ...data,
+      });
+    } catch (primaryError) {
+      try {
+        const data = await this.request('/integrations/facebook', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'updatePageDetails', pageId, ...payload }),
+        });
+
+        return this.writeCache({
+          ...data,
+        });
+      } catch (fallbackError) {
+        const primaryMessage = primaryError?.message || 'Primary page details endpoint failed.';
+        const fallbackMessage = fallbackError?.message || 'Fallback page details endpoint failed.';
+        throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
+      }
+    }
+  }
 }
 
 export default new FacebookIntegrationService();

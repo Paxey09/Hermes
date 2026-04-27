@@ -227,6 +227,58 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
   throw new Error("Failed to update access mode. Page not found.");
 }
 
+async function updateSupabasePageDetails(pageId, payload = {}) {
+  if (!supabaseClient) {
+    throw new Error("Supabase credentials are missing on server.");
+  }
+
+  const normalizedPageId = normalizePageId(pageId);
+  if (!normalizedPageId) {
+    throw new Error("pageId is required");
+  }
+
+  const updatePayload = {
+    fb_name: normalizeText(payload.pageName),
+    business_type: normalizeText(payload.businessType),
+    product_services: normalizeText(payload.productServices),
+    website_link: normalizeText(payload.websiteLink),
+    shoppe_link: normalizeText(payload.shoppeLink),
+    lazada_link: normalizeText(payload.lazadaLink),
+  };
+
+  const matchColumns = ["id", "page_id", "fb_page_id"];
+  for (const column of matchColumns) {
+    let patch = { ...updatePayload };
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const { data, error } = await supabaseClient
+        .from("fb_pages")
+        .update(patch)
+        .eq(column, normalizedPageId)
+        .select("*")
+        .limit(1);
+
+      if (!error) {
+        if (Array.isArray(data) && data.length > 0) {
+          return getNormalizedSupabaseRecord(data[0]);
+        }
+
+        break;
+      }
+
+      const missingColumnMatch = /column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i.exec(error.message || "");
+      if (missingColumnMatch?.[1] && Object.prototype.hasOwnProperty.call(patch, missingColumnMatch[1])) {
+        delete patch[missingColumnMatch[1]];
+        continue;
+      }
+
+      break;
+    }
+  }
+
+  throw new Error("Failed to update page details. Page not found.");
+}
+
 async function getConfig(options = {}) {
   const requestedPageId = normalizePageId(options.pageId);
   const supabaseConfig = requestedPageId
@@ -354,6 +406,39 @@ export default async function handler(req, res) {
         success: true,
         ...(await buildStatus(req)),
         note: "Access mode updated successfully.",
+      });
+    }
+
+    if (action === "updatePageDetails") {
+      try {
+        await updateSupabasePageDetails(pageId, {
+          pageName,
+          businessType,
+          productServices,
+          websiteLink,
+          shoppeLink,
+          lazadaLink,
+        });
+      } catch (error) {
+        return res.status(400).json({
+          error: error.message || "Failed to update page details",
+        });
+      }
+
+      saveConfig({
+        pageId,
+        pageName,
+        businessType,
+        productServices,
+        websiteLink,
+        shoppeLink,
+        lazadaLink,
+      });
+
+      return res.status(200).json({
+        success: true,
+        ...(await buildStatus(req)),
+        note: "Page details updated successfully.",
       });
     }
 

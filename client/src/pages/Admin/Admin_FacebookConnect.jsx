@@ -7,7 +7,9 @@ function Admin_FacebookConnect() {
   const [status, setStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [updatingPageId, setUpdatingPageId] = useState('');
+  const [editingPageId, setEditingPageId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -20,6 +22,15 @@ function Admin_FacebookConnect() {
     shoppeLink: '',
     lazadaLink: '',
     generatedToken: '',
+  });
+
+  const [editForm, setEditForm] = useState({
+    pageName: '',
+    businessType: '',
+    productServices: '',
+    websiteLink: '',
+    shoppeLink: '',
+    lazadaLink: '',
   });
 
   const connectedPages = Array.isArray(status?.connectedPages) ? status.connectedPages : [];
@@ -54,6 +65,11 @@ function Admin_FacebookConnect() {
   const onChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const onEditChange = (event) => {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
   };
 
   const generateToken = () => {
@@ -133,6 +149,69 @@ function Admin_FacebookConnect() {
       setSuccess('Copied to clipboard.');
     } catch {
       setError('Copy failed.');
+    }
+  };
+
+  const openEditDetails = (page) => {
+    const pageId = page?.pageId ? String(page.pageId) : '';
+    if (!pageId) {
+      setError('Missing page id. Cannot edit details.');
+      return;
+    }
+
+    setEditingPageId(pageId);
+    setEditForm({
+      pageName: page?.pageName || '',
+      businessType: page?.businessType || '',
+      productServices: page?.productServices || '',
+      websiteLink: page?.websiteLink || '',
+      shoppeLink: page?.shoppeLink || '',
+      lazadaLink: page?.lazadaLink || '',
+    });
+    setError('');
+    setSuccess('');
+  };
+
+  const cancelEditDetails = () => {
+    setEditingPageId('');
+    setEditForm({
+      pageName: '',
+      businessType: '',
+      productServices: '',
+      websiteLink: '',
+      shoppeLink: '',
+      lazadaLink: '',
+    });
+  };
+
+  const saveEditDetails = async (event) => {
+    event.preventDefault();
+    if (!editingPageId) {
+      setError('Missing page id. Cannot save changes.');
+      return;
+    }
+
+    setSavingEdit(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = await facebookIntegrationService.updatePageDetails(editingPageId, {
+        pageName: editForm.pageName,
+        businessType: editForm.businessType,
+        productServices: editForm.productServices,
+        websiteLink: editForm.websiteLink,
+        shoppeLink: editForm.shoppeLink,
+        lazadaLink: editForm.lazadaLink,
+      });
+
+      setStatus(data);
+      setSuccess(`Updated details for page ${editingPageId}.`);
+      cancelEditDetails();
+    } catch (saveError) {
+      setError(saveError.message || 'Failed to update page details.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -241,6 +320,14 @@ function Admin_FacebookConnect() {
                       <span className={`fb-status-badge ${String(page.accessMode || '').toLowerCase() === 'disable' ? 'disconnected' : 'connected'}`}>
                         {toReadableMode(page.accessMode)}
                       </span>
+                      <button
+                        type="button"
+                        className="fb-btn-secondary"
+                        onClick={() => openEditDetails(page)}
+                        disabled={savingEdit}
+                      >
+                        Edit Details
+                      </button>
                       <button
                         type="button"
                         className="fb-btn-secondary"
@@ -367,6 +454,93 @@ function Admin_FacebookConnect() {
             </button>
           </div>
         </form>
+
+        {editingPageId && (
+          <form className="fb-connect-form" onSubmit={saveEditDetails}>
+            <div className="fb-connected-header">
+              <div>
+                <h3>Edit Page Details</h3>
+                <p>Update business info and links for Page ID: {editingPageId}</p>
+              </div>
+            </div>
+            <div className="fb-form-grid">
+              <label>
+                <span>Facebook Page Name</span>
+                <input
+                  type="text"
+                  name="pageName"
+                  value={editForm.pageName}
+                  onChange={onEditChange}
+                  placeholder="Hermes Official"
+                />
+              </label>
+
+              <label>
+                <span>Business Type</span>
+                <input
+                  type="text"
+                  name="businessType"
+                  value={editForm.businessType}
+                  onChange={onEditChange}
+                  placeholder="Solar Energy, Retail, Real Estate"
+                />
+              </label>
+
+              <label>
+                <span>Product/Services</span>
+                <input
+                  type="text"
+                  name="productServices"
+                  value={editForm.productServices}
+                  onChange={onEditChange}
+                  placeholder="Solar Panel, Installation, Maintenance"
+                />
+              </label>
+
+              <label>
+                <span>Website Link</span>
+                <input
+                  type="url"
+                  name="websiteLink"
+                  value={editForm.websiteLink}
+                  onChange={onEditChange}
+                  placeholder="https://yourwebsite.com"
+                />
+              </label>
+
+              <label>
+                <span>Shopee Link</span>
+                <input
+                  type="url"
+                  name="shoppeLink"
+                  value={editForm.shoppeLink}
+                  onChange={onEditChange}
+                  placeholder="https://shopee.ph/your-shop"
+                />
+              </label>
+
+              <label>
+                <span>Lazada Link</span>
+                <input
+                  type="url"
+                  name="lazadaLink"
+                  value={editForm.lazadaLink}
+                  onChange={onEditChange}
+                  placeholder="https://www.lazada.com.ph/shop/your-shop"
+                />
+              </label>
+            </div>
+
+            <div className="fb-connect-actions" style={{ justifyContent: 'space-between' }}>
+              <button className="fb-btn-secondary" type="button" onClick={cancelEditDetails} disabled={savingEdit}>
+                Cancel
+              </button>
+              <button className="btn-primary" type="submit" disabled={savingEdit}>
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        )}
 
         <div className="fb-helper-panel">
           <div className="fb-helper-item">

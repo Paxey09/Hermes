@@ -274,6 +274,58 @@ async function updateSupabasePageAccessMode(pageId, accessMode) {
   throw new Error("Failed to update access mode. Page not found.");
 }
 
+async function updateSupabasePageDetails(pageId, payload = {}) {
+  if (!supabaseClient) {
+    throw new Error("Supabase credentials are missing on server.");
+  }
+
+  const normalizedPageId = normalizePageId(pageId);
+  if (!normalizedPageId) {
+    throw new Error("pageId is required");
+  }
+
+  const updatePayload = {
+    fb_name: normalizeText(payload.pageName),
+    business_type: normalizeText(payload.businessType),
+    product_services: normalizeText(payload.productServices),
+    website_link: normalizeText(payload.websiteLink),
+    shoppe_link: normalizeText(payload.shoppeLink),
+    lazada_link: normalizeText(payload.lazadaLink),
+  };
+
+  const matchColumns = ["id", "page_id", "fb_page_id"];
+  for (const column of matchColumns) {
+    let patch = { ...updatePayload };
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const { data, error } = await supabaseClient
+        .from("fb_pages")
+        .update(patch)
+        .eq(column, normalizedPageId)
+        .select("*")
+        .limit(1);
+
+      if (!error) {
+        if (Array.isArray(data) && data.length > 0) {
+          return getNormalizedSupabaseRecord(data[0]);
+        }
+
+        break;
+      }
+
+      const missingColumnMatch = /column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i.exec(error.message || "");
+      if (missingColumnMatch?.[1] && Object.prototype.hasOwnProperty.call(patch, missingColumnMatch[1])) {
+        delete patch[missingColumnMatch[1]];
+        continue;
+      }
+
+      break;
+    }
+  }
+
+  throw new Error("Failed to update page details. Page not found.");
+}
+
 async function getFacebookConfig(options = {}) {
   const requestedPageId = normalizePageId(options.pageId);
   const supabaseConfig = requestedPageId
@@ -637,6 +689,64 @@ router.post("/admin/access-mode", async (req, res) => {
     })),
     connectedCount: connectedPages.length,
     note: "Access mode updated successfully.",
+  });
+});
+
+router.post("/admin/page-details", async (req, res) => {
+  const { pageId, pageName, businessType, productServices, websiteLink, shoppeLink, lazadaLink } = req.body || {};
+
+  try {
+    await updateSupabasePageDetails(pageId, {
+      pageName,
+      businessType,
+      productServices,
+      websiteLink,
+      shoppeLink,
+      lazadaLink,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message || "Failed to update page details",
+    });
+  }
+
+  saveRuntimeConfig({
+    pageId,
+    pageName,
+    businessType,
+    productServices,
+    websiteLink,
+    shoppeLink,
+    lazadaLink,
+  });
+
+  const config = await getFacebookConfig();
+  const connectedPages = await getSupabaseFacebookPages();
+  const baseUrl = getPublicBaseUrl(req);
+
+  return res.status(200).json({
+    success: true,
+    connected: Boolean(connectedPages.length > 0 && config.verifyToken),
+    pageId: config.pageId || null,
+    pageName: config.pageName || null,
+    businessType: config.businessType || null,
+    productServices: config.productServices || null,
+    websiteLink: config.websiteLink || null,
+    shoppeLink: config.shoppeLink || null,
+    lazadaLink: config.lazadaLink || null,
+    hasPageAccessToken: Boolean(config.pageAccessToken),
+    hasVerifyToken: Boolean(config.verifyToken),
+    hasAppSecret: Boolean(config.appSecret),
+    accessMode: config.accessMode,
+    verifyToken: config.verifyToken || null,
+    pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}••••••••` : null,
+    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    connectedPages: connectedPages.map((page) => ({
+      ...page,
+      pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}••••••••` : null,
+    })),
+    connectedCount: connectedPages.length,
+    note: "Page details updated successfully.",
   });
 });
 
