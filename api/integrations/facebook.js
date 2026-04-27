@@ -247,6 +247,8 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
+  let lastError = null;
+
   for (const column of matchColumns) {
     let patch = { ...updatePayload };
 
@@ -266,6 +268,8 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
         break;
       }
 
+      lastError = error;
+
       const missingColumnMatch = /column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i.exec(error.message || "");
       if (missingColumnMatch?.[1] && Object.prototype.hasOwnProperty.call(patch, missingColumnMatch[1])) {
         delete patch[missingColumnMatch[1]];
@@ -276,7 +280,32 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     }
   }
 
-  throw new Error("Failed to update page details. Page not found.");
+  // Fallback strategy: if update is blocked or no row matched, insert a new latest record
+  // preserving token/access mode from existing config. The chatbot reads the latest row.
+  const current = await getSupabaseFacebookConfigByPageId(normalizedPageId);
+
+  if (!current?.pageAccessToken) {
+    if (lastError?.message) {
+      throw new Error(`Failed to update page details: ${lastError.message}`);
+    }
+
+    throw new Error("Failed to update page details. Page not found.");
+  }
+
+  await saveSupabasePageToken({
+    pageId: normalizedPageId,
+    pageName: normalizeText(payload.pageName) || current.pageName,
+    pageAccessToken: current.pageAccessToken,
+    businessType: normalizeText(payload.businessType) || current.businessType,
+    productServices: normalizeText(payload.productServices) || current.productServices,
+    websiteLink: normalizeText(payload.websiteLink) || current.websiteLink,
+    shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
+    lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
+    accessMode: current.accessMode,
+  });
+
+  const updated = await getSupabaseFacebookConfigByPageId(normalizedPageId);
+  return updated || current;
 }
 
 async function getConfig(options = {}) {
