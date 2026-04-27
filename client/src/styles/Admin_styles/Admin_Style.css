@@ -1041,18 +1041,23 @@
 
   .fb-connected-list {
     display: grid;
-    gap: 0.75rem;
+    gap: 1rem;
   }
 
   .fb-page-row {
     display: grid;
-    grid-template-columns: 56px minmax(180px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr);
-    gap: 1rem;
-    align-items: center;
+    gap: 0.9rem;
     padding: 1rem;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.018);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .fb-page-top {
+    display: grid;
+    grid-template-columns: 56px minmax(180px, 1fr) auto;
+    gap: 0.9rem;
+    align-items: center;
   }
 
   .fb-page-avatar {
@@ -1084,13 +1089,31 @@
     color: rgba(245, 240, 232, 0.6);
   }
 
-  .fb-page-subscription,
-  .fb-page-token,
-  .fb-page-access {
+  .fb-page-access-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .fb-page-details-grid {
     display: grid;
-    gap: 0.35rem;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.65rem;
+    padding-top: 0.2rem;
+  }
+
+  .fb-page-detail-item {
+    display: grid;
+    gap: 0.25rem;
     color: #f5f0e8;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(245, 240, 232, 0.08);
+    background: rgba(15, 21, 36, 0.7);
+    overflow-wrap: anywhere;
   }
 
   .fb-page-column-label {
@@ -1125,6 +1148,33 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: rgba(245, 240, 232, 0.8);
     font-size: 0.85rem;
+  }
+
+  .fb-inline-edit-form {
+    border: 1px solid rgba(24, 119, 242, 0.28);
+    background: rgba(10, 16, 30, 0.7);
+    border-radius: 10px;
+    padding: 0.9rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .fb-inline-edit-header h4 {
+    margin: 0;
+    color: #f5f0e8;
+    font-size: 1rem;
+  }
+
+  .fb-inline-edit-header p {
+    margin: 0.2rem 0 0;
+    color: rgba(245, 240, 232, 0.65);
+    font-size: 0.8rem;
+  }
+
+  .fb-inline-edit-actions {
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .fb-empty-state {
@@ -1170,14 +1220,17 @@
   }
 
   @media (max-width: 768px) {
-    .fb-page-row {
+    .fb-page-top {
       grid-template-columns: 56px 1fr;
     }
 
-    .fb-page-subscription,
-    .fb-page-token,
-    .fb-page-access {
+    .fb-page-access-actions {
       grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+
+    .fb-page-details-grid {
+      grid-template-columns: 1fr;
     }
   }
 

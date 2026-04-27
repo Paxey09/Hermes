@@ -115,6 +115,7 @@ function Admin_FacebookConnect() {
   const generatedTokenValue = form.generatedToken || status?.pageAccessTokenMasked || '••••••••';
 
   const toReadableMode = (mode) => (String(mode || '').toLowerCase() === 'disable' ? 'Disable' : 'Enable');
+  const displayValue = (value, fallback = 'Not set') => (value ? value : fallback);
 
   const toggleAccessMode = async (page) => {
     const pageId = page?.pageId;
@@ -294,29 +295,13 @@ function Admin_FacebookConnect() {
             <div className="fb-connected-list">
               {connectedPages.map((page, index) => (
                 <div className="fb-page-row" key={`${page.pageId || page.pageName || 'page'}-${index}`}>
-                  <div className="fb-page-avatar">{(page.pageName || 'H').charAt(0).toUpperCase()}</div>
-                  <div className="fb-page-main">
-                    <div className="fb-page-name">{page.pageName || 'Connected Facebook Page'}</div>
-                    <div className="fb-page-id">{page.pageId ? `Page ID: ${page.pageId}` : webhookUrl}</div>
-                    <div className="fb-page-id">{page.businessType ? `Business Type: ${page.businessType}` : 'Business Type: Not set'}</div>
-                    <div className="fb-page-id">{page.productServices ? `Product/Services: ${page.productServices}` : 'Product/Services: Not set'}</div>
-                    <div className="fb-page-id">{page.websiteLink ? `Website: ${page.websiteLink}` : 'Website: Not set'}</div>
-                    <div className="fb-page-id">{page.shoppeLink ? `Shopee: ${page.shoppeLink}` : 'Shopee: Not set'}</div>
-                    <div className="fb-page-id">{page.lazadaLink ? `Lazada: ${page.lazadaLink}` : 'Lazada: Not set'}</div>
-                  </div>
-                  <div className="fb-page-subscription">
-                    <span className="fb-page-column-label">Webhook Subscription</span>
-                    <span>{status?.subscription || 'messages and messaging_postbacks'}</span>
-                  </div>
-                  <div className="fb-page-token">
-                    <span className="fb-page-column-label">Stored Token</span>
-                    <div className="fb-token-actions">
-                      <span className="fb-token-value">{page.pageAccessTokenMasked || '••••••••'}</span>
+                  <div className="fb-page-top">
+                    <div className="fb-page-avatar">{(page.pageName || 'H').charAt(0).toUpperCase()}</div>
+                    <div className="fb-page-main">
+                      <div className="fb-page-name">{page.pageName || 'Connected Facebook Page'}</div>
+                      <div className="fb-page-id">{page.pageId ? `Page ID: ${page.pageId}` : webhookUrl}</div>
                     </div>
-                  </div>
-                  <div className="fb-page-access">
-                    <span className="fb-page-column-label">Access Mode</span>
-                    <div className="fb-token-actions">
+                    <div className="fb-page-access-actions">
                       <span className={`fb-status-badge ${String(page.accessMode || '').toLowerCase() === 'disable' ? 'disconnected' : 'connected'}`}>
                         {toReadableMode(page.accessMode)}
                       </span>
@@ -326,7 +311,7 @@ function Admin_FacebookConnect() {
                         onClick={() => openEditDetails(page)}
                         disabled={savingEdit}
                       >
-                        Edit Details
+                        {editingPageId === String(page.pageId) ? 'Editing...' : 'Edit Details'}
                       </button>
                       <button
                         type="button"
@@ -342,6 +327,123 @@ function Admin_FacebookConnect() {
                       </button>
                     </div>
                   </div>
+
+                  <div className="fb-page-details-grid">
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Business Type</span>
+                      <span>{displayValue(page.businessType)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Product/Services</span>
+                      <span>{displayValue(page.productServices)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Website</span>
+                      <span>{displayValue(page.websiteLink)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Shopee</span>
+                      <span>{displayValue(page.shoppeLink)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Lazada</span>
+                      <span>{displayValue(page.lazadaLink)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Webhook Subscription</span>
+                      <span>{status?.subscription || 'messages and messaging_postbacks'}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Stored Token</span>
+                      <span className="fb-token-value">{page.pageAccessTokenMasked || '••••••••'}</span>
+                    </div>
+                  </div>
+
+                  {editingPageId === String(page.pageId) && (
+                    <form className="fb-inline-edit-form" onSubmit={saveEditDetails}>
+                      <div className="fb-inline-edit-header">
+                        <h4>Edit Page Details</h4>
+                        <p>Update business info and links for Page ID: {editingPageId}</p>
+                      </div>
+
+                      <div className="fb-form-grid">
+                        <label>
+                          <span>Facebook Page Name</span>
+                          <input
+                            type="text"
+                            name="pageName"
+                            value={editForm.pageName}
+                            onChange={onEditChange}
+                            placeholder="Hermes Official"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Business Type</span>
+                          <input
+                            type="text"
+                            name="businessType"
+                            value={editForm.businessType}
+                            onChange={onEditChange}
+                            placeholder="Solar Energy, Retail, Real Estate"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Product/Services</span>
+                          <input
+                            type="text"
+                            name="productServices"
+                            value={editForm.productServices}
+                            onChange={onEditChange}
+                            placeholder="Solar Panel, Installation, Maintenance"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Website Link</span>
+                          <input
+                            type="url"
+                            name="websiteLink"
+                            value={editForm.websiteLink}
+                            onChange={onEditChange}
+                            placeholder="https://yourwebsite.com"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Shopee Link</span>
+                          <input
+                            type="url"
+                            name="shoppeLink"
+                            value={editForm.shoppeLink}
+                            onChange={onEditChange}
+                            placeholder="https://shopee.ph/your-shop"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Lazada Link</span>
+                          <input
+                            type="url"
+                            name="lazadaLink"
+                            value={editForm.lazadaLink}
+                            onChange={onEditChange}
+                            placeholder="https://www.lazada.com.ph/shop/your-shop"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="fb-connect-actions fb-inline-edit-actions">
+                        <button className="fb-btn-secondary" type="button" onClick={cancelEditDetails} disabled={savingEdit}>
+                          Cancel
+                        </button>
+                        <button className="btn-primary" type="submit" disabled={savingEdit}>
+                          {savingEdit ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               ))}
             </div>
@@ -454,93 +556,6 @@ function Admin_FacebookConnect() {
             </button>
           </div>
         </form>
-
-        {editingPageId && (
-          <form className="fb-connect-form" onSubmit={saveEditDetails}>
-            <div className="fb-connected-header">
-              <div>
-                <h3>Edit Page Details</h3>
-                <p>Update business info and links for Page ID: {editingPageId}</p>
-              </div>
-            </div>
-            <div className="fb-form-grid">
-              <label>
-                <span>Facebook Page Name</span>
-                <input
-                  type="text"
-                  name="pageName"
-                  value={editForm.pageName}
-                  onChange={onEditChange}
-                  placeholder="Hermes Official"
-                />
-              </label>
-
-              <label>
-                <span>Business Type</span>
-                <input
-                  type="text"
-                  name="businessType"
-                  value={editForm.businessType}
-                  onChange={onEditChange}
-                  placeholder="Solar Energy, Retail, Real Estate"
-                />
-              </label>
-
-              <label>
-                <span>Product/Services</span>
-                <input
-                  type="text"
-                  name="productServices"
-                  value={editForm.productServices}
-                  onChange={onEditChange}
-                  placeholder="Solar Panel, Installation, Maintenance"
-                />
-              </label>
-
-              <label>
-                <span>Website Link</span>
-                <input
-                  type="url"
-                  name="websiteLink"
-                  value={editForm.websiteLink}
-                  onChange={onEditChange}
-                  placeholder="https://yourwebsite.com"
-                />
-              </label>
-
-              <label>
-                <span>Shopee Link</span>
-                <input
-                  type="url"
-                  name="shoppeLink"
-                  value={editForm.shoppeLink}
-                  onChange={onEditChange}
-                  placeholder="https://shopee.ph/your-shop"
-                />
-              </label>
-
-              <label>
-                <span>Lazada Link</span>
-                <input
-                  type="url"
-                  name="lazadaLink"
-                  value={editForm.lazadaLink}
-                  onChange={onEditChange}
-                  placeholder="https://www.lazada.com.ph/shop/your-shop"
-                />
-              </label>
-            </div>
-
-            <div className="fb-connect-actions" style={{ justifyContent: 'space-between' }}>
-              <button className="fb-btn-secondary" type="button" onClick={cancelEditDetails} disabled={savingEdit}>
-                Cancel
-              </button>
-              <button className="btn-primary" type="submit" disabled={savingEdit}>
-                {savingEdit ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
-        )}
 
         <div className="fb-helper-panel">
           <div className="fb-helper-item">
