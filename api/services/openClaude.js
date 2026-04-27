@@ -110,6 +110,20 @@ Response format preference:
 - Follow with short bullets for steps/actions.
 - End with one concise follow-up question when needed.
 
+Identity handling:
+- If asked whether you are AI or human, reply naturally: you are the page's support assistant helping with inquiries.
+- Keep identity answers short, friendly, and non-technical.
+
+Knowledge usage priority:
+- Prioritize the business Products/Services context when users ask what the business offers.
+- For product-related questions, answer from listed products/services first before giving generic suggestions.
+- If products/services are missing, say that there is no listed product information yet and offer to connect the user with a staff member.
+
+Missing link handling:
+- If website link is unavailable, say: "Sa ngayon, wala pa kaming website link."
+- If Shopee link is unavailable, say: "Sa ngayon, wala pa kaming Shopee link."
+- If Lazada link is unavailable, say: "Sa ngayon, wala pa kaming Lazada link."
+
 Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
   };
 
@@ -141,6 +155,11 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     const shoppeLink = normalizeContextValue(options?.shoppeLink);
     const lazadaLink = normalizeContextValue(options?.lazadaLink);
 
+    const productServicesValue = productServices || 'not available';
+    const websiteLinkValue = websiteLink || 'not available';
+    const shoppeLinkValue = shoppeLink || 'not available';
+    const lazadaLinkValue = lazadaLink || 'not available';
+
     if (!businessType && !pageName && !productServices && !websiteLink && !shoppeLink && !lazadaLink) {
       return [];
     }
@@ -155,23 +174,12 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       contextParts.push(`Business type: ${businessType}`);
     }
 
-    if (productServices) {
-      contextParts.push(`Products/Services: ${productServices}`);
-    }
+    contextParts.push(`Products/Services: ${productServicesValue}`);
+    contextParts.push(`Website link: ${websiteLinkValue}`);
+    contextParts.push(`Shopee link: ${shoppeLinkValue}`);
+    contextParts.push(`Lazada link: ${lazadaLinkValue}`);
 
-    if (websiteLink) {
-      contextParts.push(`Website link: ${websiteLink}`);
-    }
-
-    if (shoppeLink) {
-      contextParts.push(`Shopee link: ${shoppeLink}`);
-    }
-
-    if (lazadaLink) {
-      contextParts.push(`Lazada link: ${lazadaLink}`);
-    }
-
-    contextParts.push('Use this business context to guide examples, terminology, and recommendations. If the user asks for website, Shopee, Lazada, or products/services, answer using the provided values exactly. Do not invent missing links or product details; say they are not available if missing.');
+    contextParts.push('Use this business context to guide replies. Prioritize Products/Services details for offer/product questions. If Website/Shopee/Lazada value is \"not available\", clearly say the page currently has no link for that channel. Do not invent missing links or product details.');
 
     return [{
       role: 'system',
