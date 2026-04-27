@@ -28,13 +28,11 @@ import ClientHermesChatbot from "./pages/Client/Client_HermesChatbot.jsx"
 function App() {
   return (
     <Routes>
-      //=================== OTHER ROUTES ===================//
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<NotFound />} />
 
 
 
-      //=================== ADMIN ROUTES ===================//
       <Route
         path="/AdminDashboard"
           element={
@@ -110,7 +108,6 @@ function App() {
 
 
 
-      //=================== CLIENT ROUTES ===================//
       <Route
           path="/ClientDashboard"
           element={
