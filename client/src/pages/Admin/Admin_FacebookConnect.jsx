@@ -114,6 +114,7 @@ function Admin_FacebookConnect() {
   const testToken = status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {});
 
   const toReadableMode = (mode) => (String(mode || '').toLowerCase() === 'disable' ? 'Disable' : 'Enable');
+  const displayValue = (value, fallback = 'Not set') => (value ? value : fallback);
 
   const toggleAccessMode = async (page) => {
     const pageId = page?.pageId;
