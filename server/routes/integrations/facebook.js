@@ -567,7 +567,7 @@ async function generateChatbotReply(input, context = {}) {
       messages,
       model: "claude-3-sonnet-20240229",
       options: {
-        maxTokens: 220,
+        maxTokens: 50,
         temperature: 0.65,
         channel: "facebook",
         multilingual: true,
