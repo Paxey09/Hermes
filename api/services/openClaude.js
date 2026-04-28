@@ -137,7 +137,22 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   };
 
   const isInSupportedScope = (text, options = {}) => {
+    if (!options || Object.keys(options).length === 0) {
+      return true;
+    }
+
     if (options?.channel === 'facebook' || options?.multilingual === true) {
+      return true;
+    }
+
+    if (
+      options?.businessType ||
+      options?.pageName ||
+      options?.productServices ||
+      options?.websiteLink ||
+      options?.shoppeLink ||
+      options?.lazadaLink
+    ) {
       return true;
     }
 
