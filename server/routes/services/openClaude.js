@@ -431,6 +431,22 @@ router.get("/health", (req, res) => {
 router.post("/chat", async (req, res) => {
   const { messages, model, options } = req.body;
 
+  try {
+    console.debug("[openclaude/chat] options", {
+      hasOptions: Boolean(options),
+      pageName: typeof options?.pageName === "string" ? options.pageName : null,
+      businessType: typeof options?.businessType === "string" ? options.businessType : null,
+      productServices: typeof options?.productServices === "string"
+        ? options.productServices.slice(0, 200)
+        : null,
+      websiteLink: typeof options?.websiteLink === "string" ? options.websiteLink : null,
+      shoppeLink: typeof options?.shoppeLink === "string" ? options.shoppeLink : null,
+      lazadaLink: typeof options?.lazadaLink === "string" ? options.lazadaLink : null,
+    });
+  } catch (e) {
+    /* ignore logging errors */
+  }
+
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "messages array is required" });
   }

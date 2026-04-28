@@ -270,6 +270,23 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
 
   const { endpoint, ...body } = req.body;
 
+  try {
+    const options = body?.options || {};
+    console.debug('[api/openclaude] options', {
+      hasOptions: Boolean(options),
+      pageName: typeof options?.pageName === 'string' ? options.pageName : null,
+      businessType: typeof options?.businessType === 'string' ? options.businessType : null,
+      productServices: typeof options?.productServices === 'string'
+        ? options.productServices.slice(0, 200)
+        : null,
+      websiteLink: typeof options?.websiteLink === 'string' ? options.websiteLink : null,
+      shoppeLink: typeof options?.shoppeLink === 'string' ? options.shoppeLink : null,
+      lazadaLink: typeof options?.lazadaLink === 'string' ? options.lazadaLink : null,
+    });
+  } catch (e) {
+    /* ignore logging errors */
+  }
+
   const normalizeMessages = (messages = []) => messages.map((m) => ({
     role: m.role,
     content: typeof m.content === 'string' ? m.content : String(m.content || ''),
