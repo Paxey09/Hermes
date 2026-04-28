@@ -73,7 +73,17 @@ const TOPIC_KEYWORDS = [
   "tanong",
 ];
 
-function buildSalesCsrSystemPrompt() {
+function buildSalesCsrSystemPrompt(options = {}) {
+  if (options?.promptMode === "lite") {
+    return `You are a helpful business assistant.
+Rules:
+- Answer directly and briefly.
+- Use the business Products/Services when asked about offers.
+- If link is missing, say it is not available.
+- Do not invent details.
+- Match the user's language.`;
+  }
+
   return `You are a human-like business assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
@@ -286,7 +296,7 @@ function normalizeMessages(messages = []) {
 
 function buildPromptedMessages(messages = [], options = {}) {
   return [
-    { role: "system", content: buildSalesCsrSystemPrompt() },
+    { role: "system", content: buildSalesCsrSystemPrompt(options) },
     ...buildBusinessContextMessages(options),
     ...buildChannelStyleMessages(options),
     ...normalizeMessages(messages),

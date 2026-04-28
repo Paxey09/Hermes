@@ -565,11 +565,12 @@ async function generateChatbotReply(input, context = {}) {
     },
     body: JSON.stringify({
       messages,
-      model: "claude-3-sonnet-20240229",
+      model: "openai/gpt-4o-mini",
       options: {
         maxTokens: 50,
         temperature: 0.65,
         channel: "facebook",
+        promptMode: "lite",
         multilingual: true,
         businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",

@@ -76,7 +76,17 @@ export default async function handler(req, res) {
     'tanong',
   ];
 
-  const buildSalesCsrSystemPrompt = () => {
+  const buildSalesCsrSystemPrompt = (options = {}) => {
+    if (options?.promptMode === 'lite') {
+      return `You are a helpful business assistant.
+Rules:
+- Answer directly and briefly.
+- Use the business Products/Services when asked about offers.
+- If link is missing, say it is not available.
+- Do not invent details.
+- Match the user's language.`;
+    }
+
     return `You are a human-like business assistant trained for two primary roles:
 1) Sales Agent
 2) Customer Service Representative (CSR)
@@ -293,7 +303,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
   }));
 
   const buildPromptedMessages = (messages = [], options = {}) => [
-    { role: 'system', content: buildSalesCsrSystemPrompt() },
+    { role: 'system', content: buildSalesCsrSystemPrompt(options) },
     ...buildBusinessContextMessages(options),
     ...buildChannelStyleMessages(options),
     ...normalizeMessages(messages),
