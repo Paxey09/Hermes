@@ -567,7 +567,7 @@ async function generateChatbotReply(input, context = {}) {
       messages,
       model: "openai/gpt-4o-mini",
       options: {
-        maxTokens: 50,
+        maxTokens: 40,
         temperature: 0.65,
         channel: "facebook",
         promptMode: "lite",
