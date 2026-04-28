@@ -441,21 +441,21 @@ async function verifyFacebookSignature(req) {
   }
 }
 
-function extractReplyText(result) {
+function extractReplyText(result, options = {}) {
   if (!result) return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
 
   if (Array.isArray(result.content) && result.content.length > 0) {
     const textPart = result.content.find((part) => part?.type === "text");
-    if (textPart?.text) return compactFacebookReply(textPart.text);
+    if (textPart?.text) return compactFacebookReply(textPart.text, options);
   }
 
-  if (typeof result.message === "string") return compactFacebookReply(result.message);
-  if (typeof result.text === "string") return compactFacebookReply(result.text);
+  if (typeof result.message === "string") return compactFacebookReply(result.message, options);
+  if (typeof result.text === "string") return compactFacebookReply(result.text, options);
 
   return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
 }
 
-function compactFacebookReply(rawText) {
+function compactFacebookReply(rawText, options = {}) {
   let cleaned = typeof rawText === "string" ? rawText : String(rawText || "");
   cleaned = cleaned.trim();
 
@@ -473,24 +473,36 @@ function compactFacebookReply(rawText) {
   }
 
   // Humanize and add a subtle emoticon to make replies feel friendlier.
-  // If the reply already ends with an emoji, don't add another.
-  const emojiList = ["🙂", "😊", "👍", "🙌", "😉", "✨"];
+  // Options: { style: 'direct'|'friendly', emojiFrequency: 'none'|'sparse'|'normal', emojiList: [...] }
+  const emojiList = options?.emojiList || ["🙂", "😊", "👍", "🙌", "😉", "✨"];
+  const emojiFrequency = options?.emojiFrequency || "sparse"; // 'none' | 'sparse' | 'normal'
   const endsWithEmoji = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+$/u;
 
   let final = cleaned;
   if (!final) {
-    return "Sige, paano kita matutulungan ngayon? " + emojiList[0];
+    return "Sige, paano kita matutulungan ngayon?" + (emojiFrequency === 'none' ? '' : ' ' + emojiList[0]);
   }
 
-  // If short reply, prefer adding a small friendly phrase punctuation.
+  // Make replies direct when requested
+  if (options?.style === 'direct') {
+    // Trim filler phrases and keep only 1-2 sentences for brevity.
+    final = final.replace(/\b(in my opinion|based on the information provided|as an AI assistant)\b/gi, '').trim();
+    const sentences = final.split(/(?<=[.!?])\s+/);
+    if (sentences.length > 2) final = sentences.slice(0, 2).join(' ').trim();
+  }
+
+  // Ensure short replies end with punctuation
   if (final.length < 80 && !/[.!?]$/.test(final)) {
     final = final.trim() + '.';
   }
 
-  if (!endsWithEmoji.test(final)) {
-    // Pick a small emoji deterministically but varied enough.
-    const idx = Math.floor(Math.abs(hashCode(final)) % emojiList.length);
-    final = `${final} ${emojiList[idx]}`;
+  // Decide whether to add emoji based on frequency and existing emoji
+  if (!endsWithEmoji.test(final) && emojiFrequency !== 'none') {
+    const shouldAdd = emojiFrequency === 'normal' ? true : Math.random() < 0.45;
+    if (shouldAdd) {
+      const idx = Math.floor(Math.abs(hashCode(final)) % emojiList.length);
+      final = `${final} ${emojiList[idx]}`;
+    }
   }
 
   return final;
@@ -547,7 +559,15 @@ async function generateChatbotReply(input, context = {}) {
   }
 
   const result = await response.json();
-  return extractReplyText(result);
+  // Post-process reply respecting style/language/emoji preferences
+  const replyOptions = {
+    style: context?.style || 'direct', // make replies direct by default
+    languagePreference: context?.languagePreference || 'auto',
+    emojiFrequency: context?.emojiFrequency || 'sparse',
+    emojiList: context?.emojiList || undefined,
+  };
+
+  return extractReplyText(result, replyOptions);
 }
 
 async function sendFacebookMessage(recipientId, text, context = {}) {
@@ -892,6 +912,10 @@ router.post("/", async (req, res) => {
               websiteLink,
               shoppeLink,
               lazadaLink,
+              // Prefer direct, human-like replies and automatic language detection
+              style: 'direct',
+              languagePreference: 'auto',
+              emojiFrequency: 'sparse',
             })
           : "Chatbot not available. Contact the admin.";
 

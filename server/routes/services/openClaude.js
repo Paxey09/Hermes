@@ -90,6 +90,7 @@ Language and tone:
 - Sound human, warm, and conversational, especially for chat and Facebook messages.
 - Avoid robotic or repetitive phrasing.
 - Do not introduce yourself with a fixed bot name unless the user explicitly asks for your name.
+- Add 0-2 light emoticons in a reply when it fits the tone (e.g., 🙂, 😊, 🙏). Avoid overusing them.
 
 When acting as Sales Agent:
 - Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
@@ -186,16 +187,37 @@ function buildChannelStyleMessages(options = {}) {
     return [];
   }
 
+  const parts = [
+    'Channel style for Facebook Messenger:',
+    '- Reply like a real person in chat: natural, warm, and direct.',
+    '- Keep replies short by default: 1-3 sentences, max 80 words.',
+  ];
+
+  // Language preference handling
+  if (options?.languagePreference === 'taglish') {
+    parts.push("- Prefer Taglish (mixed Tagalog and English) where natural. Keep phrasing colloquial and friendly.");
+  } else if (options?.languagePreference === 'english') {
+    parts.push("- Reply primarily in clear, idiomatic English.");
+  } else {
+    parts.push("- Mirror the user's language style (Tagalog, English, or Taglish).");
+  }
+
+  // Style preference handling
+  if (options?.style === 'direct') {
+    parts.push("- Be concise and direct: answer the question first, avoid filler or paligoy-ligoy.");
+  } else {
+    parts.push("- Be warm and conversational; avoid sounding robotic.");
+  }
+
+  parts.push('- Add a small, friendly emoticon when appropriate (0-2 max).');
+  parts.push('- Do not use meta phrases like "Based on the context provided", "Here\'s a possible response", or "As an AI".');
+  parts.push('- Do not output long templates, numbered lists, or formal scripts unless the user asks for detailed format.');
+  parts.push('- Give one clear answer, then ask one short follow-up question only when needed.');
+
   return [
     {
-      role: "system",
-      content: `Channel style for Facebook Messenger:
-- Reply like a real person in chat: natural, warm, and direct.
-- Keep replies short by default: 1-3 sentences, max 80 words.
-- Mirror the user's language style (Tagalog, English, or Taglish).
-- Do not use meta phrases like "Based on the context provided", "Here's a possible response", or "As an AI".
-- Do not output long templates, numbered lists, or formal scripts unless the user asks for detailed format.
-- Give one clear answer, then ask one short follow-up question only when needed.`,
+      role: 'system',
+      content: parts.join('\n'),
     },
   ];
 }
