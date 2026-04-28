@@ -234,6 +234,40 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     restricted: true,
   });
 
+  const buildBusinessContextFallback = (model, options = {}) => {
+    const pageName = typeof options.pageName === 'string' ? options.pageName.trim() : '';
+    const productServices = typeof options.productServices === 'string' ? options.productServices.trim() : '';
+    const websiteLink = typeof options.websiteLink === 'string' ? options.websiteLink.trim() : '';
+    const shoppeLink = typeof options.shoppeLink === 'string' ? options.shoppeLink.trim() : '';
+    const lazadaLink = typeof options.lazadaLink === 'string' ? options.lazadaLink.trim() : '';
+
+    const parts = [];
+    if (pageName) {
+      parts.push(`Here is what ${pageName} offers:`);
+    } else {
+      parts.push('Here are our services:');
+    }
+
+    if (productServices) {
+      parts.push(productServices);
+    } else {
+      parts.push("We don't have listed services yet. Please ask our team for details.");
+    }
+
+    if (websiteLink) parts.push(`Website: ${websiteLink}`);
+    if (shoppeLink) parts.push(`Shopee: ${shoppeLink}`);
+    if (lazadaLink) parts.push(`Lazada: ${lazadaLink}`);
+
+    return {
+      id: 'context_' + Date.now(),
+      type: 'message',
+      role: 'assistant',
+      content: [{ type: 'text', text: parts.join(' ') }],
+      model: model || 'claude-3-sonnet-20240229',
+      stop_reason: 'end_turn',
+    };
+  };
+
   const { endpoint, ...body } = req.body;
 
   const normalizeMessages = (messages = []) => messages.map((m) => ({
@@ -250,6 +284,18 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
 
   const latestUserText = getLatestUserMessage(body?.messages || []);
   if (!isInSupportedScope(latestUserText, body?.options || {})) {
+    const hasContext = Boolean(
+      body?.options?.businessType ||
+        body?.options?.pageName ||
+        body?.options?.productServices ||
+        body?.options?.websiteLink ||
+        body?.options?.shoppeLink ||
+        body?.options?.lazadaLink
+    );
+    if (hasContext) {
+      return res.status(200).json(buildBusinessContextFallback(body?.model, body?.options || {}));
+    }
+
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
   }
 
