@@ -472,7 +472,37 @@ function compactFacebookReply(rawText) {
     cleaned = lastSentenceEnd > 120 ? short.slice(0, lastSentenceEnd + 1).trim() : `${short.trim()}...`;
   }
 
-  return cleaned || "Sige, paano kita matutulungan ngayon?";
+  // Humanize and add a subtle emoticon to make replies feel friendlier.
+  // If the reply already ends with an emoji, don't add another.
+  const emojiList = ["🙂", "😊", "👍", "🙌", "😉", "✨"];
+  const endsWithEmoji = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+$/u;
+
+  let final = cleaned;
+  if (!final) {
+    return "Sige, paano kita matutulungan ngayon? " + emojiList[0];
+  }
+
+  // If short reply, prefer adding a small friendly phrase punctuation.
+  if (final.length < 80 && !/[.!?]$/.test(final)) {
+    final = final.trim() + '.';
+  }
+
+  if (!endsWithEmoji.test(final)) {
+    // Pick a small emoji deterministically but varied enough.
+    const idx = Math.floor(Math.abs(hashCode(final)) % emojiList.length);
+    final = `${final} ${emojiList[idx]}`;
+  }
+
+  return final;
+}
+
+function hashCode(str) {
+  let h = 0;
+  if (!str) return h;
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  }
+  return h;
 }
 
 async function generateChatbotReply(input, context = {}) {
