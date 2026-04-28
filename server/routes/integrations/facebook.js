@@ -441,21 +441,21 @@ async function verifyFacebookSignature(req) {
   }
 }
 
-function extractReplyText(result, options = {}) {
+function extractReplyText(result) {
   if (!result) return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
 
   if (Array.isArray(result.content) && result.content.length > 0) {
     const textPart = result.content.find((part) => part?.type === "text");
-    if (textPart?.text) return compactFacebookReply(textPart.text, options);
+    if (textPart?.text) return compactFacebookReply(textPart.text);
   }
 
-  if (typeof result.message === "string") return compactFacebookReply(result.message, options);
-  if (typeof result.text === "string") return compactFacebookReply(result.text, options);
+  if (typeof result.message === "string") return compactFacebookReply(result.message);
+  if (typeof result.text === "string") return compactFacebookReply(result.text);
 
   return "I can help with CRM, ERP, appointment booking, analytics, and email marketing.";
 }
 
-function compactFacebookReply(rawText, options = {}) {
+function compactFacebookReply(rawText) {
   let cleaned = typeof rawText === "string" ? rawText : String(rawText || "");
   cleaned = cleaned.trim();
 
@@ -473,36 +473,24 @@ function compactFacebookReply(rawText, options = {}) {
   }
 
   // Humanize and add a subtle emoticon to make replies feel friendlier.
-  // Options: { style: 'direct'|'friendly', emojiFrequency: 'none'|'sparse'|'normal', emojiList: [...] }
-  const emojiList = options?.emojiList || ["🙂", "😊", "👍", "🙌", "😉", "✨"];
-  const emojiFrequency = options?.emojiFrequency || "sparse"; // 'none' | 'sparse' | 'normal'
+  // If the reply already ends with an emoji, don't add another.
+  const emojiList = ["🙂", "😊", "👍", "🙌", "😉", "✨"];
   const endsWithEmoji = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+$/u;
 
   let final = cleaned;
   if (!final) {
-    return "Sige, paano kita matutulungan ngayon?" + (emojiFrequency === 'none' ? '' : ' ' + emojiList[0]);
+    return "Sige, paano kita matutulungan ngayon? " + emojiList[0];
   }
 
-  // Make replies direct when requested
-  if (options?.style === 'direct') {
-    // Trim filler phrases and keep only 1-2 sentences for brevity.
-    final = final.replace(/\b(in my opinion|based on the information provided|as an AI assistant)\b/gi, '').trim();
-    const sentences = final.split(/(?<=[.!?])\s+/);
-    if (sentences.length > 2) final = sentences.slice(0, 2).join(' ').trim();
-  }
-
-  // Ensure short replies end with punctuation
+  // If short reply, prefer adding a small friendly phrase punctuation.
   if (final.length < 80 && !/[.!?]$/.test(final)) {
     final = final.trim() + '.';
   }
 
-  // Decide whether to add emoji based on frequency and existing emoji
-  if (!endsWithEmoji.test(final) && emojiFrequency !== 'none') {
-    const shouldAdd = emojiFrequency === 'normal' ? true : Math.random() < 0.45;
-    if (shouldAdd) {
-      const idx = Math.floor(Math.abs(hashCode(final)) % emojiList.length);
-      final = `${final} ${emojiList[idx]}`;
-    }
+  if (!endsWithEmoji.test(final)) {
+    // Pick a small emoji deterministically but varied enough.
+    const idx = Math.floor(Math.abs(hashCode(final)) % emojiList.length);
+    final = `${final} ${emojiList[idx]}`;
   }
 
   return final;
@@ -515,6 +503,45 @@ function hashCode(str) {
     h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
   }
   return h;
+}
+
+function buildBusinessFallbackReply(context = {}, userText = "") {
+  const productServices = typeof context.productServices === "string" ? context.productServices.trim() : "";
+  const businessType = typeof context.businessType === "string" ? context.businessType.trim() : "";
+  const pageName = typeof context.pageName === "string" ? context.pageName.trim() : "";
+  const websiteLink = typeof context.websiteLink === "string" ? context.websiteLink.trim() : "";
+  const shoppeLink = typeof context.shoppeLink === "string" ? context.shoppeLink.trim() : "";
+  const lazadaLink = typeof context.lazadaLink === "string" ? context.lazadaLink.trim() : "";
+
+  const hasTagalog = /\b(ano|saan|may|wala|pa|po|kayo|kami|nyo|niyo|salamat|magkano)\b/i.test(userText);
+  const langTagalog = hasTagalog;
+
+  const parts = [];
+  if (pageName) {
+    parts.push(langTagalog ? `Ito ang mga ino-offer ng ${pageName}:` : `Here is what ${pageName} offers:`);
+  } else {
+    parts.push(langTagalog ? "Ito ang mga services namin:" : "Here are our services:");
+  }
+
+  if (productServices) {
+    parts.push(productServices);
+  } else if (businessType) {
+    parts.push(langTagalog ? `Business type: ${businessType}.` : `Business type: ${businessType}.`);
+  } else {
+    parts.push(langTagalog ? "Wala pa kaming nakalistang services ngayon." : "We don't have listed services yet.");
+  }
+
+  if (websiteLink) {
+    parts.push(langTagalog ? `Website: ${websiteLink}` : `Website: ${websiteLink}`);
+  }
+  if (shoppeLink) {
+    parts.push(langTagalog ? `Shopee: ${shoppeLink}` : `Shopee: ${shoppeLink}`);
+  }
+  if (lazadaLink) {
+    parts.push(langTagalog ? `Lazada: ${lazadaLink}` : `Lazada: ${lazadaLink}`);
+  }
+
+  return parts.join(" ");
 }
 
 async function generateChatbotReply(input, context = {}) {
@@ -559,15 +586,21 @@ async function generateChatbotReply(input, context = {}) {
   }
 
   const result = await response.json();
-  // Post-process reply respecting style/language/emoji preferences
-  const replyOptions = {
-    style: context?.style || 'direct', // make replies direct by default
-    languagePreference: context?.languagePreference || 'auto',
-    emojiFrequency: context?.emojiFrequency || 'sparse',
-    emojiList: context?.emojiList || undefined,
-  };
+  const replyText = extractReplyText(result);
 
-  return extractReplyText(result, replyOptions);
+  if (
+    result?.restricted === true ||
+    /I can only help with:/i.test(replyText)
+  ) {
+    const lastUser = messages
+      .slice()
+      .reverse()
+      .find((m) => m.role === "user");
+    const lastUserText = typeof lastUser?.content === "string" ? lastUser.content : "";
+    return compactFacebookReply(buildBusinessFallbackReply(context, lastUserText));
+  }
+
+  return replyText;
 }
 
 async function sendFacebookMessage(recipientId, text, context = {}) {
@@ -912,10 +945,6 @@ router.post("/", async (req, res) => {
               websiteLink,
               shoppeLink,
               lazadaLink,
-              // Prefer direct, human-like replies and automatic language detection
-              style: 'direct',
-              languagePreference: 'auto',
-              emojiFrequency: 'sparse',
             })
           : "Chatbot not available. Contact the admin.";
 
