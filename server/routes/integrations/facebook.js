@@ -582,6 +582,15 @@ async function generateChatbotReply(input, context = {}) {
   });
 
   if (!response.ok) {
+    if (response.status === 402) {
+      const lastUser = messages
+        .slice()
+        .reverse()
+        .find((m) => m.role === "user");
+      const lastUserText = typeof lastUser?.content === "string" ? lastUser.content : "";
+      return compactFacebookReply(buildBusinessFallbackReply(context, lastUserText));
+    }
+
     throw new Error(`Chatbot API error (${response.status})`);
   }
 
