@@ -5,23 +5,23 @@ import '../../styles/HomepageSupportWidget.css';
 const QUICK_TOPICS = [
   {
     id: 'about-service',
-    label: 'What is Hermes?',
-    prompt: 'Can you explain what Hermes is and what problems it solves for businesses?',
+    label: 'What is Exponify?',
+    prompt: 'Can you explain what Exponify is and what problems it solves for businesses?',
   },
   {
     id: 'features',
     label: 'Key Features',
-    prompt: 'What are the main features and modules of Hermes? Tell me about Inbox, CRM, ERP, Analytics, Chatbot, and Social Ads.',
+    prompt: 'What are the main features and modules of Exponify? Tell me about Inbox, CRM, ERP, Analytics, Chatbot, and Social Ads.',
   },
   {
     id: 'benefits',
     label: 'Benefits',
-    prompt: 'What are the key benefits of using Hermes for my business?',
+    prompt: 'What are the key benefits of using Exponify for my business?',
   },
   {
     id: 'demo',
     label: 'Book Demo',
-    prompt: 'How can I book a demo or get started with Hermes?',
+    prompt: 'How can I book a demo or get started with Exponify?',
   },
 ];
 
@@ -29,7 +29,7 @@ const INITIAL_MESSAGES = [
   {
     id: 1,
     role: 'assistant',
-    text: 'Hi! 👋 I\'m here to help you understand Hermes - your all-in-one business platform for managing inbox, customers, inventory, analytics, and AI-powered support across all channels. What would you like to know?',
+    text: 'Hi! 👋 I\'m here to help you understand Exponify - your all-in-one business platform for managing inbox, customers, inventory, analytics, and AI-powered support across all channels. What would you like to know?',
   },
 ];
 
@@ -85,11 +85,10 @@ function HomepageSupportWidget() {
           promptMode: 'full',
           temperature: 0.7,
           maxTokens: 1000,
-          pageName: 'Hermes Business Suite',
+          pageName: 'Exponify',
           businessType: 'All-in-one business solution',
-          productServices: 'Hermes Inbox, CRM, ERP, Analytics, AI Chatbot, Social Ads - unified business platform for multi-channel management.',
+          productServices: 'Exponify - unified platform with Inbox (unified messaging), CRM (customer management), ERP (inventory & stock), Analytics (data insights), AI Chatbot (24/7 auto-replies), and Social Ads (campaign optimization).',
           productServicePriceRanges: 'Custom enterprise quotes based on features and scale.',
-          websiteLink: typeof window !== 'undefined' ? window.location.origin : '',
         }
       );
 
