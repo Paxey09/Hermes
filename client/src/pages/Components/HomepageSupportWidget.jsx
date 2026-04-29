@@ -284,12 +284,26 @@ function HomepageSupportWidget() {
         </div>
 
         <form className="ep-floating-widget-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={isBookingMode ? 'Enter your information...' : 'Type your question...'}
-          />
+          {/* Dynamic input based on booking step */}
+          {isBookingMode ? (
+            <input
+              type={bookingStep === 4 ? 'date' : bookingStep === 5 ? 'time' : 'text'}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={
+                bookingStep === 4 ? 'Select a date (MM/DD/YYYY)' :
+                bookingStep === 5 ? 'Select a time' :
+                'Enter your information...'
+              }
+            />
+          ) : (
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Type your question..."
+            />
+          )}
           <button type="submit" className="ep-floating-widget-send" disabled={!canSend}>
             {isBookingMode ? 'Next' : 'Ask'}
           </button>
