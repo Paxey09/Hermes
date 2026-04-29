@@ -702,6 +702,24 @@ router.post("/chat", async (req, res) => {
     return res.status(200).json(buildOutOfScopeResponse(model));
   }
 
+  // If this request is explicitly for the homepage surface and a HOME_GROQ_API_KEY
+  // is configured, call Groq directly with that key to ensure homepage traffic
+  // uses the dedicated homepage API key rather than the generic GROQ_API_KEY.
+  if (options && String(options.surface) === "homepage" && process.env.HOME_GROQ_API_KEY) {
+    try {
+      const chosenModel = model || process.env.HOME_GROQ_MODEL || process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+      const data = await callViaGroq({ messages, model: chosenModel, options, apiKey: process.env.HOME_GROQ_API_KEY });
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error("OpenClaude /chat (homepage) error:", error);
+      return res.status(error.status || 500).json({
+        error: "Failed to call Groq (homepage)",
+        message: error.message,
+        details: error.details || null,
+      });
+    }
+  }
+
   try {
     const data = await callOpenClaude({ messages, model, options });
     return res.status(200).json(data);
