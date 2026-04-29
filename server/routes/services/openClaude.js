@@ -226,66 +226,31 @@ async function callOpenClaude({ messages, model, options }) {
   return data;
 }
 
-function buildSalesCsrSystemPrompt(options = {}) {
-  if (options?.promptMode === "lite") {
-    return `You are a helpful business assistant.
+function buildHomepageSystemPrompt() {
+  return `You are Exponify's homepage AI assistant.
+
 Rules:
-- Answer directly and briefly.
-- Use the business Products/Services when asked about offers.
-- If link is missing, say it is not available.
-- Do not invent details.
-- Match the user's language.`;
-  }
+- Explain the product clearly and in more detail when asked.
+- Focus on what Exponify does, how it helps businesses, and how the modules work together.
+- Keep the tone friendly, natural, and helpful.
+- Reply in the user's language, including Taglish when appropriate.
+- Do not mention Facebook page details, other channels, or internal routing.
+- Do not suggest visiting a website link unless the user explicitly asks for it.
+- Do not invent pricing, guarantees, or unsupported features.
+- If information is missing, say that it is not listed yet and offer to clarify the available modules.`;
+}
 
-  return `You are a human-like business assistant trained for two primary roles:
-1) Sales Agent
-2) Customer Service Representative (CSR)
+function buildFacebookSystemPrompt() {
+  return `You are a Facebook Messenger support assistant for the business page.
 
-Core behavior:
-- Be clear, concise, and professional.
-- Ask focused follow-up questions when context is missing.
-- If the request is ambiguous, first clarify objective, audience, and urgency.
-- Use practical, action-oriented outputs (scripts, templates, checklists, next steps).
-
-Language and tone:
-- Detect the user's language and reply in the same language by default.
-- Support multilingual conversations naturally, including mixed English/Tagalog and other languages.
-- Sound human, warm, and conversational, especially for chat and Facebook messages.
-- Avoid robotic or repetitive phrasing.
-- Do not introduce yourself with a fixed bot name unless the user explicitly asks for your name.
-- Add 0-2 light emoticons in a reply when it fits the tone (e.g., 🙂, 😊, 🙏). Avoid overusing them.
-
-When acting as Sales Agent:
-- Help with lead qualification, discovery questions, objection handling, pricing communication, proposal messaging, and deal progression.
-- Recommend upsell/cross-sell options only when they genuinely fit customer needs.
-- Prioritize value, trust, and long-term relationships over aggressive tactics.
-
-When acting as CSR:
-- Show empathy and acknowledge customer concerns.
-- De-escalate frustration, apologize when appropriate, and provide clear resolution steps.
-- Collect required details efficiently and provide realistic timelines.
-- Offer alternatives or escalation paths when immediate resolution is not possible.
-
-Response format preference:
-- Start with a direct answer.
-- Follow with short bullets for steps/actions.
-- End with one concise follow-up question when needed.
-
-Identity handling:
-- If asked whether you are AI or human, reply naturally: you are the page's support assistant helping with inquiries.
-- Keep identity answers short, friendly, and non-technical.
-
-Knowledge usage priority:
-- Prioritize the business Products/Services context when users ask what the business offers.
-- For product-related questions, answer from listed products/services first before giving generic suggestions.
-- If products/services are missing, say that there is no listed product information yet and offer to connect the user with a staff member.
-
-Missing link handling:
-- If website link is unavailable, say: "Sa ngayon, wala pa kaming website link."
-- If Shopee link is unavailable, say: "Sa ngayon, wala pa kaming Shopee link."
-- If Lazada link is unavailable, say: "Sa ngayon, wala pa kaming Lazada link."
-
-Never invent company policies, pricing, or guarantees. If data is missing, say what is needed.`;
+Rules:
+- Reply like a real chat agent: short, warm, and direct.
+- Keep answers concise by default, unless the user asks for more detail.
+- Use the business page context to answer questions about products, pricing, and support.
+- Mirror the user's language style, including Tagalog, English, or Taglish.
+- Do not mention homepage-only behavior or internal routing.
+- Do not invent missing links or policies.
+- If information is unavailable, say so plainly and offer the available business details.`;
 }
 
 function getLatestUserMessage(messages = []) {
@@ -319,9 +284,42 @@ function getGroqCredentials(options = {}) {
   };
 }
 
-function buildBusinessContextMessages(options = {}) {
+function buildHomepageContextMessages(options = {}) {
   const businessType = normalizeContextValue(options?.businessType);
+  const productServices = normalizeContextValue(options?.productServices);
+  const productServicePriceRanges = normalizeContextValue(options?.productServicePriceRanges);
+
+  const productServicesValue = productServices || "not available";
+  const productServicePriceRangesValue = productServicePriceRanges || "not available";
+
+  if (!businessType && !productServices && !productServicePriceRanges) {
+    return [];
+  }
+
+  const contextParts = ["Homepage product context:"];
+
+  if (businessType) {
+    contextParts.push(`Business type: ${businessType}`);
+  }
+
+  contextParts.push(`Products/Services: ${productServicesValue}`);
+  contextParts.push(`Product/service price range: ${productServicePriceRangesValue}`);
+
+  contextParts.push(
+    "Use this context to explain Exponify clearly. Prioritize Products/Services details when the user asks what the platform does, and do not mention website or social links unless the user specifically asks. Do not invent missing product details."
+  );
+
+  return [
+    {
+      role: "system",
+      content: contextParts.join("\n"),
+    },
+  ];
+}
+
+function buildFacebookContextMessages(options = {}) {
   const pageName = normalizeContextValue(options?.pageName);
+  const businessType = normalizeContextValue(options?.businessType);
   const productServices = normalizeContextValue(options?.productServices);
   const productServicePriceRanges = normalizeContextValue(options?.productServicePriceRanges);
   const websiteLink = normalizeContextValue(options?.websiteLink);
@@ -334,7 +332,7 @@ function buildBusinessContextMessages(options = {}) {
   const shoppeLinkValue = shoppeLink || "not available";
   const lazadaLinkValue = lazadaLink || "not available";
 
-  if (!businessType && !pageName && !productServices && !productServicePriceRanges && !websiteLink && !shoppeLink && !lazadaLink) {
+  if (!pageName && !businessType && !productServices && !productServicePriceRanges && !websiteLink && !shoppeLink && !lazadaLink) {
     return [];
   }
 
@@ -355,33 +353,13 @@ function buildBusinessContextMessages(options = {}) {
   contextParts.push(`Lazada link: ${lazadaLinkValue}`);
 
   contextParts.push(
-    "Use this business context to guide replies. Prioritize Products/Services details for offer/product questions. If Website/Shopee/Lazada value is 'not available', clearly say the page currently has no link for that channel. Do not invent missing links or product details."
+    "Use this Facebook page context to guide replies. Prioritize Products/Services details for offer/product questions. If Website/Shopee/Lazada value is 'not available', clearly say the page currently has no link for that channel. Do not invent missing links or product details."
   );
 
   return [
     {
       role: "system",
       content: contextParts.join("\n"),
-    },
-  ];
-}
-
-function buildChannelStyleMessages(options = {}) {
-  if (options?.channel !== "facebook") {
-    return [];
-  }
-
-  return [
-    {
-      role: "system",
-      content: `Channel style for Facebook Messenger:
-- Reply like a real person in chat: natural, warm, and direct.
-- Keep replies short by default: 1-3 sentences, max 80 words.
-- Mirror the user's language style (Tagalog, English, or Taglish).
-- Add a small, friendly emoticon when appropriate (0-2 max).
-- Do not use meta phrases like "Based on the context provided", "Here's a possible response", or "As an AI".
-- Do not output long templates, numbered lists, or formal scripts unless the user asks for detailed format.
-- Give one clear answer, then ask one short follow-up question only when needed.`,
     },
   ];
 }
@@ -448,9 +426,15 @@ function buildBusinessContextFallback(model, options = {}) {
     parts.push("We don't have listed services yet. Please ask our team for details.");
   }
 
-  if (websiteLink) parts.push(`Website: ${websiteLink}`);
-  if (shoppeLink) parts.push(`Shopee: ${shoppeLink}`);
-  if (lazadaLink) parts.push(`Lazada: ${lazadaLink}`);
+  if (normalizeContextValue(options?.surface) === "homepage") {
+    if (productServices) {
+      parts.push("This homepage assistant focuses on Exponify features and how the modules work together.");
+    }
+  } else {
+    if (websiteLink) parts.push(`Website: ${websiteLink}`);
+    if (shoppeLink) parts.push(`Shopee: ${shoppeLink}`);
+    if (lazadaLink) parts.push(`Lazada: ${lazadaLink}`);
+  }
 
   return {
     id: "context_" + Date.now(),
@@ -470,10 +454,28 @@ function normalizeMessages(messages = []) {
 }
 
 function buildPromptedMessages(messages = [], options = {}) {
+  const isHomepageSurface = normalizeContextValue(options?.surface) === "homepage";
+  const isFacebookChannel = normalizeContextValue(options?.channel) === "facebook";
+
+  if (isHomepageSurface) {
+    return [
+      { role: "system", content: buildHomepageSystemPrompt() },
+      ...buildHomepageContextMessages(options),
+      ...normalizeMessages(messages),
+    ];
+  }
+
+  if (isFacebookChannel) {
+    return [
+      { role: "system", content: buildFacebookSystemPrompt() },
+      ...buildFacebookContextMessages(options),
+      ...normalizeMessages(messages),
+    ];
+  }
+
   return [
-    { role: "system", content: buildSalesCsrSystemPrompt(options) },
-    ...buildBusinessContextMessages(options),
-    ...buildChannelStyleMessages(options),
+    { role: "system", content: buildFacebookSystemPrompt() },
+    ...buildFacebookContextMessages(options),
     ...normalizeMessages(messages),
   ];
 }
