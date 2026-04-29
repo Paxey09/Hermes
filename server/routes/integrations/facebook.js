@@ -18,6 +18,7 @@ const fbRuntimeConfig = {
   pageAccessToken: "",
   businessType: "",
   productServices: "",
+  productServicePriceRanges: "",
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
@@ -98,6 +99,11 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.product_services === "string" && record.product_services.trim()) ||
     (typeof record.productServices === "string" && record.productServices.trim()) ||
     "";
+  const productServicePriceRanges =
+    (typeof record.product_service_price_ranges === "string" && record.product_service_price_ranges.trim()) ||
+    (typeof record.product_service_price_range === "string" && record.product_service_price_range.trim()) ||
+    (typeof record.productServicePriceRanges === "string" && record.productServicePriceRanges.trim()) ||
+    "";
   const websiteLink =
     (typeof record.website_link === "string" && record.website_link.trim()) ||
     (typeof record.websiteLink === "string" && record.websiteLink.trim()) ||
@@ -119,6 +125,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     pageAccessToken,
     businessType,
     productServices,
+    productServicePriceRanges,
     websiteLink,
     shoppeLink,
     lazadaLink,
@@ -211,6 +218,7 @@ async function saveSupabasePageToken(payload = {}) {
     fb_token: normalizeText(payload.pageAccessToken),
     business_type: normalizeText(payload.businessType),
     product_services: normalizeText(payload.productServices),
+    product_service_price_ranges: normalizeText(payload.productServicePriceRanges),
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
@@ -291,6 +299,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     fb_name: normalizeText(payload.pageName),
     business_type: normalizeText(payload.businessType),
     product_services: normalizeText(payload.productServices),
+    product_service_price_ranges: normalizeText(payload.productServicePriceRanges),
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
@@ -348,6 +357,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     pageAccessToken: current.pageAccessToken,
     businessType: normalizeText(payload.businessType) || current.businessType,
     productServices: normalizeText(payload.productServices) || current.productServices,
+    productServicePriceRanges: normalizeText(payload.productServicePriceRanges) || current.productServicePriceRanges,
     websiteLink: normalizeText(payload.websiteLink) || current.websiteLink,
     shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
     lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
@@ -378,6 +388,11 @@ async function getFacebookConfig(options = {}) {
     productServices:
       supabaseConfig?.productServices ||
       (!isPageSpecificLookup ? fbRuntimeConfig.productServices || process.env.FB_PRODUCT_SERVICES || "" : ""),
+    productServicePriceRanges:
+      supabaseConfig?.productServicePriceRanges ||
+      (!isPageSpecificLookup
+        ? fbRuntimeConfig.productServicePriceRanges || process.env.FB_PRODUCT_SERVICE_PRICE_RANGES || ""
+        : ""),
     websiteLink:
       supabaseConfig?.websiteLink ||
       (!isPageSpecificLookup ? fbRuntimeConfig.websiteLink || process.env.FB_WEBSITE_LINK || "" : ""),
@@ -400,6 +415,9 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = normalizeText(payload.pageAccessToken);
   if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = normalizeText(payload.businessType);
   if (typeof payload.productServices === "string") fbRuntimeConfig.productServices = normalizeText(payload.productServices);
+  if (typeof payload.productServicePriceRanges === "string") {
+    fbRuntimeConfig.productServicePriceRanges = normalizeText(payload.productServicePriceRanges);
+  }
   if (typeof payload.websiteLink === "string") fbRuntimeConfig.websiteLink = normalizeText(payload.websiteLink);
   if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
@@ -515,6 +533,9 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
   const websiteLink = typeof context.websiteLink === "string" ? context.websiteLink.trim() : "";
   const shoppeLink = typeof context.shoppeLink === "string" ? context.shoppeLink.trim() : "";
   const lazadaLink = typeof context.lazadaLink === "string" ? context.lazadaLink.trim() : "";
+  const productServicePriceRanges = typeof context.productServicePriceRanges === "string"
+    ? context.productServicePriceRanges.trim()
+    : "";
 
   const hasTagalog = /\b(ano|saan|may|wala|pa|po|kayo|kami|nyo|niyo|salamat|magkano)\b/i.test(userText);
   const langTagalog = hasTagalog;
@@ -532,6 +553,10 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
     parts.push(langTagalog ? `Business type: ${businessType}.` : `Business type: ${businessType}.`);
   } else {
     parts.push(langTagalog ? "Wala pa kaming nakalistang services ngayon." : "We don't have listed services yet.");
+  }
+
+  if (productServicePriceRanges) {
+    parts.push(`Price range: ${productServicePriceRanges}`);
   }
 
   if (websiteLink) {
@@ -578,6 +603,8 @@ async function generateChatbotReply(input, context = {}) {
         businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",
         productServices: typeof context.productServices === "string" ? context.productServices : "",
+        productServicePriceRanges:
+          typeof context.productServicePriceRanges === "string" ? context.productServicePriceRanges : "",
         websiteLink: typeof context.websiteLink === "string" ? context.websiteLink : "",
         shoppeLink: typeof context.shoppeLink === "string" ? context.shoppeLink : "",
         lazadaLink: typeof context.lazadaLink === "string" ? context.lazadaLink : "",
@@ -680,6 +707,7 @@ router.get("/admin/status", async (req, res) => {
     pageName: config.pageName || null,
     businessType: config.businessType || null,
     productServices: config.productServices || null,
+    productServicePriceRanges: config.productServicePriceRanges || null,
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
@@ -709,6 +737,7 @@ router.post("/admin/connect", async (req, res) => {
     accessMode,
     businessType,
     productServices,
+    productServicePriceRanges,
     websiteLink,
     shoppeLink,
     lazadaLink,
@@ -727,6 +756,7 @@ router.post("/admin/connect", async (req, res) => {
     appSecret,
     businessType,
     productServices,
+    productServicePriceRanges,
     websiteLink,
     shoppeLink,
     lazadaLink,
@@ -740,6 +770,7 @@ router.post("/admin/connect", async (req, res) => {
       accessMode,
       businessType,
       productServices,
+      productServicePriceRanges,
       websiteLink,
       shoppeLink,
       lazadaLink,
@@ -761,6 +792,7 @@ router.post("/admin/connect", async (req, res) => {
     pageName: config.pageName || null,
     businessType: config.businessType || null,
     productServices: config.productServices || null,
+    productServicePriceRanges: config.productServicePriceRanges || null,
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
@@ -818,13 +850,23 @@ router.post("/admin/access-mode", async (req, res) => {
 });
 
 router.post("/admin/page-details", async (req, res) => {
-  const { pageId, pageName, businessType, productServices, websiteLink, shoppeLink, lazadaLink } = req.body || {};
+  const {
+    pageId,
+    pageName,
+    businessType,
+    productServices,
+    productServicePriceRanges,
+    websiteLink,
+    shoppeLink,
+    lazadaLink,
+  } = req.body || {};
 
   try {
     await updateSupabasePageDetails(pageId, {
       pageName,
       businessType,
       productServices,
+      productServicePriceRanges,
       websiteLink,
       shoppeLink,
       lazadaLink,
@@ -840,6 +882,7 @@ router.post("/admin/page-details", async (req, res) => {
     pageName,
     businessType,
     productServices,
+    productServicePriceRanges,
     websiteLink,
     shoppeLink,
     lazadaLink,
@@ -856,6 +899,7 @@ router.post("/admin/page-details", async (req, res) => {
     pageName: config.pageName || null,
     businessType: config.businessType || null,
     productServices: config.productServices || null,
+    productServicePriceRanges: config.productServicePriceRanges || null,
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
@@ -944,6 +988,7 @@ router.post("/", async (req, res) => {
         const businessType = pageConfig.businessType || "";
         const pageName = pageConfig.pageName || "";
         const productServices = pageConfig.productServices || "";
+        const productServicePriceRanges = pageConfig.productServicePriceRanges || "";
         const websiteLink = pageConfig.websiteLink || "";
         const shoppeLink = pageConfig.shoppeLink || "";
         const lazadaLink = pageConfig.lazadaLink || "";
@@ -955,6 +1000,7 @@ router.post("/", async (req, res) => {
               businessType,
               pageName,
               productServices,
+              productServicePriceRanges,
               websiteLink,
               shoppeLink,
               lazadaLink,

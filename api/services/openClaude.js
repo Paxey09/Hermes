@@ -159,6 +159,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       options?.businessType ||
       options?.pageName ||
       options?.productServices ||
+      options?.productServicePriceRanges ||
       options?.websiteLink ||
       options?.shoppeLink ||
       options?.lazadaLink
@@ -176,16 +177,18 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     const businessType = normalizeContextValue(options?.businessType);
     const pageName = normalizeContextValue(options?.pageName);
     const productServices = normalizeContextValue(options?.productServices);
+    const productServicePriceRanges = normalizeContextValue(options?.productServicePriceRanges);
     const websiteLink = normalizeContextValue(options?.websiteLink);
     const shoppeLink = normalizeContextValue(options?.shoppeLink);
     const lazadaLink = normalizeContextValue(options?.lazadaLink);
 
     const productServicesValue = productServices || 'not available';
+    const productServicePriceRangesValue = productServicePriceRanges || 'not available';
     const websiteLinkValue = websiteLink || 'not available';
     const shoppeLinkValue = shoppeLink || 'not available';
     const lazadaLinkValue = lazadaLink || 'not available';
 
-    if (!businessType && !pageName && !productServices && !websiteLink && !shoppeLink && !lazadaLink) {
+    if (!businessType && !pageName && !productServices && !productServicePriceRanges && !websiteLink && !shoppeLink && !lazadaLink) {
       return [];
     }
 
@@ -200,6 +203,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     }
 
     contextParts.push(`Products/Services: ${productServicesValue}`);
+    contextParts.push(`Product/service price range: ${productServicePriceRangesValue}`);
     contextParts.push(`Website link: ${websiteLinkValue}`);
     contextParts.push(`Shopee link: ${shoppeLinkValue}`);
     contextParts.push(`Lazada link: ${lazadaLinkValue}`);
@@ -289,6 +293,8 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       productServices: typeof options?.productServices === 'string'
         ? options.productServices.slice(0, 200)
         : null,
+      productServicePriceRanges:
+        typeof options?.productServicePriceRanges === 'string' ? options.productServicePriceRanges : null,
       websiteLink: typeof options?.websiteLink === 'string' ? options.websiteLink : null,
       shoppeLink: typeof options?.shoppeLink === 'string' ? options.shoppeLink : null,
       lazadaLink: typeof options?.lazadaLink === 'string' ? options.lazadaLink : null,

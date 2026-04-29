@@ -3,6 +3,16 @@ import Admin_Layout from '../Components/Admin_Components/Admin_Layout.jsx';
 import facebookIntegrationService from '../../services/facebookIntegration';
 import '../../styles/Admin_styles/Admin_Style.css';
 
+const PRICE_RANGE_OPTIONS = [
+  '',
+  'Below ₱500',
+  '₱500 - ₱1,999',
+  '₱2,000 - ₱4,999',
+  '₱5,000 - ₱9,999',
+  '₱10,000 and above',
+  'Custom / Varies',
+];
+
 function Admin_FacebookConnect() {
   const [status, setStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -18,6 +28,7 @@ function Admin_FacebookConnect() {
     pageName: '',
     businessType: '',
     productServices: '',
+    productServicePriceRanges: '',
     websiteLink: '',
     shoppeLink: '',
     lazadaLink: '',
@@ -28,6 +39,7 @@ function Admin_FacebookConnect() {
     pageName: '',
     businessType: '',
     productServices: '',
+    productServicePriceRanges: '',
     websiteLink: '',
     shoppeLink: '',
     lazadaLink: '',
@@ -47,6 +59,7 @@ function Admin_FacebookConnect() {
         pageName: data.pageName || current.pageName,
         businessType: data.businessType || current.businessType,
         productServices: data.productServices || current.productServices,
+        productServicePriceRanges: data.productServicePriceRanges || current.productServicePriceRanges,
         websiteLink: data.websiteLink || current.websiteLink,
         shoppeLink: data.shoppeLink || current.shoppeLink,
         lazadaLink: data.lazadaLink || current.lazadaLink,
@@ -90,6 +103,7 @@ function Admin_FacebookConnect() {
         pageName: form.pageName,
         businessType: form.businessType,
         productServices: form.productServices,
+        productServicePriceRanges: form.productServicePriceRanges,
         websiteLink: form.websiteLink,
         shoppeLink: form.shoppeLink,
         lazadaLink: form.lazadaLink,
@@ -164,6 +178,7 @@ function Admin_FacebookConnect() {
       pageName: page?.pageName || '',
       businessType: page?.businessType || '',
       productServices: page?.productServices || '',
+      productServicePriceRanges: page?.productServicePriceRanges || '',
       websiteLink: page?.websiteLink || '',
       shoppeLink: page?.shoppeLink || '',
       lazadaLink: page?.lazadaLink || '',
@@ -178,6 +193,7 @@ function Admin_FacebookConnect() {
       pageName: '',
       businessType: '',
       productServices: '',
+      productServicePriceRanges: '',
       websiteLink: '',
       shoppeLink: '',
       lazadaLink: '',
@@ -200,6 +216,7 @@ function Admin_FacebookConnect() {
         pageName: editForm.pageName,
         businessType: editForm.businessType,
         productServices: editForm.productServices,
+        productServicePriceRanges: editForm.productServicePriceRanges,
         websiteLink: editForm.websiteLink,
         shoppeLink: editForm.shoppeLink,
         lazadaLink: editForm.lazadaLink,
@@ -310,6 +327,10 @@ function Admin_FacebookConnect() {
                       <span>{displayValue(page.productServices)}</span>
                     </div>
                     <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">Price Range</span>
+                      <span>{displayValue(page.productServicePriceRanges)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
                       <span className="fb-page-column-label">Website</span>
                       <span>{displayValue(page.websiteLink)}</span>
                     </div>
@@ -370,6 +391,21 @@ function Admin_FacebookConnect() {
                             onChange={onEditChange}
                             placeholder="Solar Panel, Installation, Maintenance"
                           />
+                        </label>
+
+                        <label>
+                          <span>Price Range</span>
+                          <select
+                            name="productServicePriceRanges"
+                            value={editForm.productServicePriceRanges}
+                            onChange={onEditChange}
+                          >
+                            {PRICE_RANGE_OPTIONS.map((option) => (
+                              <option key={option || 'none'} value={option}>
+                                {option || 'Select price range'}
+                              </option>
+                            ))}
+                          </select>
                         </label>
 
                         <label>
@@ -474,6 +510,21 @@ function Admin_FacebookConnect() {
                 onChange={onChange}
                 placeholder="Solar Panel, Installation, Maintenance"
               />
+            </label>
+
+            <label>
+              <span>Price Range</span>
+              <select
+                name="productServicePriceRanges"
+                value={form.productServicePriceRanges}
+                onChange={onChange}
+              >
+                {PRICE_RANGE_OPTIONS.map((option) => (
+                  <option key={option || 'none'} value={option}>
+                    {option || 'Select price range'}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
