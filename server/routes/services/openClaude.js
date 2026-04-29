@@ -153,6 +153,12 @@ async function callOpenClaude({ messages, model, options }) {
     throw error;
   }
 
+  console.debug("[callOpenClaude] Using API:", {
+    isHomepage: groqCredentials.isHomepageSurface,
+    usingGroq: Boolean(groqApiKey),
+    groqModel: groqCredentials.model,
+  });
+
   if (groqApiKey) {
     return callViaGroq({ messages, model, options, apiKey: groqApiKey });
   }
@@ -663,17 +669,10 @@ router.post("/chat", async (req, res) => {
       pageName: typeof options?.pageName === "string" ? options.pageName : null,
       businessType: typeof options?.businessType === "string" ? options.businessType : null,
       productServices: typeof options?.productServices === "string"
-          // Log which API key is being used
-          console.debug("[callOpenClaude] Using API:", {
-            isHomepage: groqCredentials.isHomepageSurface,
-            usingGroq: Boolean(groqApiKey),
-            groqModel: groqCredentials.model,
-          });
-
         ? options.productServices.slice(0, 200)
         : null,
       productServicePriceRanges:
-        typeof options?.productServicePriceRanges === "string" ? options.productServicePriceRanges : null,
+        typeof options?.productServicePriceRanges === "string"  ? options.productServicePriceRanges : null,
       websiteLink: typeof options?.websiteLink === "string" ? options.websiteLink : null,
       shoppeLink: typeof options?.shoppeLink === "string" ? options.shoppeLink : null,
       lazadaLink: typeof options?.lazadaLink === "string" ? options.lazadaLink : null,
