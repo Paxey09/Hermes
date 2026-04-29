@@ -141,10 +141,17 @@ async function callViaGroq({ messages, model, options, apiKey }) {
 }
 
 async function callOpenClaude({ messages, model, options }) {
-  const groqApiKey = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
+  const groqCredentials = getGroqCredentials(options);
+  const groqApiKey = groqCredentials.apiKey;
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   const openClaudeApiKey = process.env.OPENCLAUDE_API_KEY;
-  const defaultModel = groqApiKey ? DEFAULT_GROQ_MODEL : "claude-3-sonnet-20240229";
+  const defaultModel = groqApiKey ? groqCredentials.model : "claude-3-sonnet-20240229";
+
+  if (groqCredentials.isHomepageSurface && !groqApiKey) {
+    const error = new Error("HOME_GROQ_API_KEY is missing for the homepage chatbot.");
+    error.status = 500;
+    throw error;
+  }
 
   if (groqApiKey) {
     return callViaGroq({ messages, model, options, apiKey: groqApiKey });
@@ -286,6 +293,24 @@ function getLatestUserMessage(messages = []) {
 
 function normalizeContextValue(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getGroqCredentials(options = {}) {
+  const isHomepageSurface = normalizeContextValue(options?.surface) === "homepage";
+
+  if (isHomepageSurface) {
+    return {
+      apiKey: process.env.HOME_GROQ_API_KEY || "",
+      model: process.env.HOME_GROQ_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      isHomepageSurface: true,
+    };
+  }
+
+  return {
+    apiKey: process.env.GROQ_API_KEY || process.env.XAI_API_KEY || "",
+    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    isHomepageSurface: false,
+  };
 }
 
 function buildBusinessContextMessages(options = {}) {

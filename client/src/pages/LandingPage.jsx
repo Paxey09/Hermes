@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/LandingPage.css';
 import { supabase } from '../config/supabaseClient.js';
+import HomepageSupportWidget from './Components/HomepageSupportWidget.jsx';
 
   const services = [
     {
@@ -349,6 +350,7 @@ function LandingPage() {
 
             <ul className="ep-nav-links">
               <li><button onClick={() => scrollTo('services')}>Services</button></li>
+              <li><button onClick={() => scrollTo('support')}>Chat</button></li>
               <li><button onClick={() => scrollTo('about')}>About</button></li>
               <li>
                 <button onClick={() => scrollTo('booking')} className="ep-nav-cta">
@@ -386,6 +388,9 @@ function LandingPage() {
             <div className="ep-nav-mobile-links">
               <button onClick={() => { scrollTo('services'); setMobileMenuOpen(false); }}>
                 Services
+              </button>
+              <button onClick={() => { scrollTo('support'); setMobileMenuOpen(false); }}>
+                Chat
               </button>
               <button onClick={() => { scrollTo('about'); setMobileMenuOpen(false); }}>
                 About
@@ -473,6 +478,8 @@ function LandingPage() {
             </div>
           </div>
         </section>
+
+        <HomepageSupportWidget />
 
         {/* ── ABOUT ── */}
         <section className="ep-section ep-about-section" id="about">

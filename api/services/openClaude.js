@@ -332,11 +332,18 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
   }
 
-  const groqApiKey = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
+  const isHomepageSurface = normalizeContextValue(body?.options?.surface) === 'homepage';
+  const groqApiKey = isHomepageSurface ? (process.env.HOME_GROQ_API_KEY || '') : (process.env.GROQ_API_KEY || process.env.XAI_API_KEY);
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   const anthropicApiKey = process.env.OPENCLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
-  const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const defaultGroqModel = isHomepageSurface
+    ? (process.env.HOME_GROQ_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile')
+    : (process.env.GROQ_MODEL || 'llama-3.3-70b-versatile');
   const defaultModel = groqApiKey ? defaultGroqModel : 'claude-3-sonnet-20240229';
+
+  if (isHomepageSurface && !groqApiKey) {
+    return res.status(500).json({ error: 'HOME_GROQ_API_KEY is missing for the homepage chatbot.' });
+  }
 
   if (!groqApiKey && !openRouterApiKey && !anthropicApiKey) {
     const userMessage = body?.messages?.[body.messages.length - 1]?.content || '';
