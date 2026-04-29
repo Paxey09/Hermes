@@ -13,15 +13,6 @@ const OPENROUTER_MODEL_MAP = {
   "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
 };
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-const DEFAULT_MODEL = (process.env.GROQ_API_KEY || process.env.XAI_API_KEY) ? DEFAULT_GROQ_MODEL : "claude-3-sonnet-20240229";
-
-const OPENROUTER_MODEL_MAP = {
-  "claude-3-sonnet-20240229": "anthropic/claude-3.5-sonnet",
-  "claude-3-opus-20240229": "anthropic/claude-3-opus",
-  "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
-};
 
 const GROQ_MODEL_MAP = {
   "claude-3-sonnet-20240229": DEFAULT_GROQ_MODEL,
