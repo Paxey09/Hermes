@@ -51,7 +51,7 @@ class OpenClaudeService {
           messages,
           model,
           options: {
-            maxTokens: options.maxTokens || 1024,
+            maxTokens: options.maxTokens || 2048,
             temperature: options.temperature || 0.7,
             ...options,
           },
@@ -153,7 +153,7 @@ Include:
           messages,
           model,
           options: {
-            maxTokens: 1024,
+            maxTokens: 2048,
             stream: true,
           },
         }),

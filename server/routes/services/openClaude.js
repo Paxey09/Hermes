@@ -107,7 +107,7 @@ async function callViaGroq({ messages, model, options, apiKey }) {
   const buildPayload = (selectedModel) => ({
     model: selectedModel,
     messages: buildPromptedMessages(messages, options),
-    max_tokens: options?.maxTokens || 1024,
+    max_tokens: options?.maxTokens || 2048,
     temperature: options?.temperature ?? 0.7,
   });
 
@@ -182,7 +182,7 @@ async function callOpenClaude({ messages, model, options }) {
 
   const payload = {
     model: model || defaultModel,
-    max_tokens: options?.maxTokens || 1024,
+    max_tokens: options?.maxTokens || 2048,
     temperature: options?.temperature ?? 0.7,
     messages: buildPromptedMessages(messages, options),
   };
@@ -449,7 +449,7 @@ async function callViaOpenRouter({ messages, model, options, apiKey }) {
   const buildPayload = (selectedModel) => ({
     model: selectedModel,
     messages: buildPromptedMessages(messages, options),
-    max_tokens: options?.maxTokens || 1024,
+    max_tokens: options?.maxTokens || 2048,
     temperature: options?.temperature ?? 0.7,
   });
 
