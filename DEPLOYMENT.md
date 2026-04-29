@@ -55,7 +55,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 **server/.env:**
 ```bash
 PORT=3000
-XAI_API_KEY=your_xai_grok_api_key
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 FB_VERIFY_TOKEN=your_fb_verify_token
@@ -72,7 +73,8 @@ Add these environment variables in Render for the backend service:
 
 ```bash
 NODE_ENV=production
-XAI_API_KEY=your_xai_grok_api_key
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 FB_VERIFY_TOKEN=your_fb_verify_token

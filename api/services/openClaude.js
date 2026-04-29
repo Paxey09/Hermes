@@ -326,12 +326,13 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
   }
 
-  const xaiApiKey = process.env.XAI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   const anthropicApiKey = process.env.OPENCLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
-  const defaultModel = process.env.XAI_API_KEY ? 'grok-2-latest' : 'claude-3-sonnet-20240229';
+  const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const defaultModel = groqApiKey ? defaultGroqModel : 'claude-3-sonnet-20240229';
 
-  if (!xaiApiKey && !openRouterApiKey && !anthropicApiKey) {
+  if (!groqApiKey && !openRouterApiKey && !anthropicApiKey) {
     const userMessage = body?.messages?.[body.messages.length - 1]?.content || '';
     return res.status(200).json({
       id: 'demo_' + Date.now(),
@@ -349,25 +350,27 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     });
   }
 
-  const provider = xaiApiKey ? 'xai' : openRouterApiKey ? 'openrouter' : 'anthropic';
+  const provider = groqApiKey ? 'groq' : openRouterApiKey ? 'openrouter' : 'anthropic';
 
   try {
-    const targetUrl = provider === 'xai'
-      ? 'https://api.x.ai/v1/chat/completions'
+    const targetUrl = provider === 'groq'
+      ? 'https://api.groq.com/openai/v1/chat/completions'
       : provider === 'openrouter'
       ? 'https://openrouter.ai/api/v1/chat/completions'
       : `https://api.anthropic.com/v1${endpoint}`;
 
-    const mappedModel = provider === 'xai'
+    const mappedModel = provider === 'groq'
       ? {
-          'claude-3-sonnet-20240229': 'grok-2-latest',
-          'claude-3-opus-20240229': 'grok-2-latest',
-          'claude-3-haiku-20240307': 'grok-2-latest',
-          'openai/gpt-4o-mini': 'grok-2-latest',
-          'gpt-4o-mini': 'grok-2-latest',
-          'openai/gpt-4o': 'grok-2-latest',
-          'gpt-4o': 'grok-2-latest',
-        }[body?.model] || (typeof body?.model === 'string' && body.model.startsWith('grok-') ? body.model : defaultModel)
+          'claude-3-sonnet-20240229': defaultGroqModel,
+          'claude-3-opus-20240229': defaultGroqModel,
+          'claude-3-haiku-20240307': defaultGroqModel,
+          'openai/gpt-4o-mini': defaultGroqModel,
+          'gpt-4o-mini': defaultGroqModel,
+          'openai/gpt-4o': defaultGroqModel,
+          'gpt-4o': defaultGroqModel,
+          'grok-2-latest': defaultGroqModel,
+          'grok-4.20': defaultGroqModel,
+        }[body?.model] || body?.model || defaultGroqModel
       : provider === 'openrouter'
       ? {
           'claude-3-sonnet-20240229': 'anthropic/claude-3.5-sonnet',
@@ -392,8 +395,8 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(provider === 'xai' || provider === 'openrouter'
-          ? { Authorization: `Bearer ${provider === 'xai' ? xaiApiKey : openRouterApiKey}` }
+        ...(provider === 'groq' || provider === 'openrouter'
+          ? { Authorization: `Bearer ${provider === 'groq' ? groqApiKey : openRouterApiKey}` }
           : {
               'x-api-key': anthropicApiKey,
               'anthropic-version': '2023-06-01',
@@ -414,7 +417,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       return res.status(response.status).json(data);
     }
 
-    if (provider === 'xai' || provider === 'openrouter') {
+    if (provider === 'groq' || provider === 'openrouter') {
       const text = data?.choices?.[0]?.message?.content || 'No response text returned.';
       return res.status(200).json({
         id: data.id || 'msg_' + Date.now(),

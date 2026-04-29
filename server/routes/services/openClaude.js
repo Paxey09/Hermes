@@ -3,8 +3,9 @@ const router = express.Router();
 
 const OPENCLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
-const DEFAULT_MODEL = process.env.XAI_API_KEY ? "grok-2-latest" : "claude-3-sonnet-20240229";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const DEFAULT_MODEL = (process.env.GROQ_API_KEY || process.env.XAI_API_KEY) ? DEFAULT_GROQ_MODEL : "claude-3-sonnet-20240229";
 
 const OPENROUTER_MODEL_MAP = {
   "claude-3-sonnet-20240229": "anthropic/claude-3.5-sonnet",
@@ -12,14 +13,26 @@ const OPENROUTER_MODEL_MAP = {
   "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
 };
 
-const XAI_MODEL_MAP = {
-  "claude-3-sonnet-20240229": "grok-2-latest",
-  "claude-3-opus-20240229": "grok-2-latest",
-  "claude-3-haiku-20240307": "grok-2-latest",
-  "openai/gpt-4o-mini": "grok-2-latest",
-  "gpt-4o-mini": "grok-2-latest",
-  "openai/gpt-4o": "grok-2-latest",
-  "gpt-4o": "grok-2-latest",
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const DEFAULT_MODEL = (process.env.GROQ_API_KEY || process.env.XAI_API_KEY) ? DEFAULT_GROQ_MODEL : "claude-3-sonnet-20240229";
+
+const OPENROUTER_MODEL_MAP = {
+  "claude-3-sonnet-20240229": "anthropic/claude-3.5-sonnet",
+  "claude-3-opus-20240229": "anthropic/claude-3-opus",
+  "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
+};
+
+const GROQ_MODEL_MAP = {
+  "claude-3-sonnet-20240229": DEFAULT_GROQ_MODEL,
+  "claude-3-opus-20240229": DEFAULT_GROQ_MODEL,
+  "claude-3-haiku-20240307": DEFAULT_GROQ_MODEL,
+  "openai/gpt-4o-mini": DEFAULT_GROQ_MODEL,
+  "gpt-4o-mini": DEFAULT_GROQ_MODEL,
+  "openai/gpt-4o": DEFAULT_GROQ_MODEL,
+  "gpt-4o": DEFAULT_GROQ_MODEL,
+  "grok-2-latest": DEFAULT_GROQ_MODEL,
+  "grok-4.20": DEFAULT_GROQ_MODEL,
 };
 
 const SUPPORTED_TOPICS = [
@@ -84,6 +97,130 @@ const TOPIC_KEYWORDS = [
   "bayad",
   "tanong",
 ];
+
+function isGroqCompatibleModel(model) {
+  return typeof model === "string" && (
+    model.startsWith("llama-") ||
+    model.startsWith("openai/") ||
+    model.startsWith("qwen/") ||
+    model.startsWith("meta-llama/") ||
+    model.startsWith("mixtral/") ||
+    model.startsWith("gemma/") ||
+    model.startsWith("groq/")
+  );
+}
+
+async function callViaGroq({ messages, model, options, apiKey }) {
+  const mappedModel = GROQ_MODEL_MAP[model] || (isGroqCompatibleModel(model) ? model : DEFAULT_GROQ_MODEL);
+
+  const buildPayload = (selectedModel) => ({
+    model: selectedModel,
+    messages: buildPromptedMessages(messages, options),
+    max_tokens: options?.maxTokens || 1024,
+    temperature: options?.temperature ?? 0.7,
+  });
+
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(buildPayload(mappedModel)),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || response.statusText || "Groq request failed");
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+
+  const text = data?.choices?.[0]?.message?.content || "No response text returned.";
+  return {
+    id: data.id || "msg_" + Date.now(),
+    type: "message",
+    role: "assistant",
+    content: [{ type: "text", text }],
+    model: data.model || mappedModel,
+    stop_reason: data?.choices?.[0]?.finish_reason || "end_turn",
+  };
+}
+
+async function callOpenClaude({ messages, model, options }) {
+  const groqApiKey = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const openClaudeApiKey = process.env.OPENCLAUDE_API_KEY;
+  const defaultModel = groqApiKey ? DEFAULT_GROQ_MODEL : "claude-3-sonnet-20240229";
+
+  if (groqApiKey) {
+    return callViaGroq({ messages, model, options, apiKey: groqApiKey });
+  }
+
+  if (openRouterApiKey) {
+    if (!openRouterApiKey.startsWith("sk-or-v1-")) {
+      const error = new Error("OPENROUTER_API_KEY appears invalid. Expected a key starting with sk-or-v1-");
+      error.status = 500;
+      throw error;
+    }
+
+    return callViaOpenRouter({ messages, model, options, apiKey: openRouterApiKey });
+  }
+
+  const apiKey = openClaudeApiKey;
+
+  if (!apiKey) {
+    const userMessage = messages?.[messages.length - 1]?.content || "";
+    return {
+      id: "demo_" + Date.now(),
+      type: "message",
+      role: "assistant",
+      content: [
+        {
+          type: "text",
+          text: `Demo mode: no AI API key configured yet. You said: ${userMessage}`,
+        },
+      ],
+      model: model || defaultModel,
+      stop_reason: "end_turn",
+      demo_mode: true,
+    };
+  }
+
+  const payload = {
+    model: model || defaultModel,
+    max_tokens: options?.maxTokens || 1024,
+    temperature: options?.temperature ?? 0.7,
+    messages: buildPromptedMessages(messages, options),
+  };
+
+  if (apiKey.startsWith("sk-or-v1-")) {
+    return callViaOpenRouter({ messages, model, options, apiKey });
+  }
+
+  const response = await fetch(OPENCLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || response.statusText || "OpenClaude request failed");
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+
+  return data;
+}
 
 function buildSalesCsrSystemPrompt(options = {}) {
   if (options?.promptMode === "lite") {
@@ -366,8 +503,8 @@ async function callViaOpenRouter({ messages, model, options, apiKey }) {
   };
 }
 
-async function callViaXAI({ messages, model, options, apiKey }) {
-  const mappedModel = XAI_MODEL_MAP[model] || (typeof model === "string" && model.startsWith("grok-") ? model : DEFAULT_MODEL);
+async function callViaGroq({ messages, model, options, apiKey }) {
+  const mappedModel = GROQ_MODEL_MAP[model] || (isGroqCompatibleModel(model) ? model : DEFAULT_GROQ_MODEL);
 
   const buildPayload = (selectedModel) => ({
     model: selectedModel,
@@ -376,7 +513,7 @@ async function callViaXAI({ messages, model, options, apiKey }) {
     temperature: options?.temperature ?? 0.7,
   });
 
-  const response = await fetch(XAI_API_URL, {
+  const response = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -388,7 +525,7 @@ async function callViaXAI({ messages, model, options, apiKey }) {
   const data = await response.json();
 
   if (!response.ok) {
-    const error = new Error(data?.error?.message || response.statusText || "xAI request failed");
+    const error = new Error(data?.error?.message || response.statusText || "Groq request failed");
     error.status = response.status;
     error.details = data;
     throw error;
@@ -406,12 +543,12 @@ async function callViaXAI({ messages, model, options, apiKey }) {
 }
 
 async function callOpenClaude({ messages, model, options }) {
-  const xaiApiKey = process.env.XAI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   const openClaudeApiKey = process.env.OPENCLAUDE_API_KEY;
 
-  if (xaiApiKey) {
-    return callViaXAI({ messages, model, options, apiKey: xaiApiKey });
+  if (groqApiKey) {
+    return callViaGroq({ messages, model, options, apiKey: groqApiKey });
   }
 
   if (openRouterApiKey) {
@@ -435,10 +572,10 @@ async function callOpenClaude({ messages, model, options }) {
       content: [
         {
           type: "text",
-          text: `Demo mode: no OPENCLAUDE_API_KEY configured yet. You said: ${userMessage}`,
+          text: `Demo mode: no AI API key configured yet. You said: ${userMessage}`,
         },
       ],
-      model: model || "claude-3-sonnet-20240229",
+      model: model || DEFAULT_MODEL,
       stop_reason: "end_turn",
       demo_mode: true,
     };
@@ -479,8 +616,8 @@ async function callOpenClaude({ messages, model, options }) {
 
 // OpenClaude Service Routes
 router.get("/health", (req, res) => {
-  const provider = process.env.XAI_API_KEY
-    ? "xai"
+  const provider = process.env.GROQ_API_KEY || process.env.XAI_API_KEY
+    ? "groq"
     : process.env.OPENROUTER_API_KEY
     ? "openrouter"
     : process.env.OPENCLAUDE_API_KEY
@@ -491,7 +628,7 @@ router.get("/health", (req, res) => {
     status: "healthy",
     service: "OpenClaude",
     provider,
-    configured: Boolean(process.env.XAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENCLAUDE_API_KEY),
+    configured: Boolean(process.env.GROQ_API_KEY || process.env.XAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENCLAUDE_API_KEY),
     timestamp: new Date().toISOString()
   });
 });

@@ -5,7 +5,9 @@ const { createClient } = require("@supabase/supabase-js");
 const router = express.Router();
 
 const FB_GRAPH_API_BASE = "https://graph.facebook.com/v22.0";
-const DEFAULT_CHATBOT_MODEL = process.env.XAI_API_KEY ? "grok-2-latest" : "claude-3-sonnet-20240229";
+const DEFAULT_CHATBOT_MODEL = (process.env.GROQ_API_KEY || process.env.XAI_API_KEY)
+  ? (process.env.GROQ_MODEL || "llama-3.3-70b-versatile")
+  : "claude-3-sonnet-20240229";
 const CONVERSATION_TTL_MS = 30 * 60 * 1000;
 const CONVERSATION_MAX_MESSAGES = 8;
 const conversationMemory = new Map();
