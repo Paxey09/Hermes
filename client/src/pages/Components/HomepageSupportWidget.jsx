@@ -39,6 +39,17 @@ function HomepageSupportWidget() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isBookingMode, setIsBookingMode] = useState(false);
+  const [bookingStep, setBookingStep] = useState(0);
+  const [bookingData, setBookingData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    date: '',
+    time: '',
+    platform: 'Google Meet',
+  });
   const messagesEndRef = useRef(null);
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
@@ -106,12 +117,106 @@ function HomepageSupportWidget() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    void sendMessage(input);
+    if (isBookingMode) {
+      void handleBookingInput();
+    } else {
+      void sendMessage(input);
+    }
   };
 
   const handleQuickTopic = (topic) => {
     setError('');
-    void sendMessage(topic.prompt);
+    if (topic.id === 'demo') {
+      // Start booking tutorial mode
+      setIsBookingMode(true);
+      setBookingStep(0);
+      setMessages([
+        {
+          id: Date.now(),
+          role: 'assistant',
+          text: "Great! I'll help you book a demo. Let me collect some information. What's your full name?",
+        },
+      ]);
+    } else {
+      void sendMessage(topic.prompt);
+    }
+  };
+
+  const handleBookingInput = () => {
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
+
+    const steps = [
+      { key: 'name', question: "What's your email address?" },
+      { key: 'email', question: "What's your phone number?" },
+      { key: 'phone', question: "What's your company name?" },
+      { key: 'company', question: "What's your preferred date for the demo? (MM/DD/YYYY)" },
+      { key: 'date', question: "What time works best for you?" },
+      { key: 'time', question: "Which platform would you prefer? (Google Meet)" },
+    ];
+
+    if (bookingStep < steps.length) {
+      const currentStep = steps[bookingStep];
+      setBookingData((prev) => ({
+        ...prev,
+        [currentStep.key]: trimmed,
+      }));
+
+      const nextStep = bookingStep + 1;
+      setInput('');
+
+      if (nextStep < steps.length) {
+        setMessages((current) => [
+          ...current,
+          { id: Date.now(), role: 'user', text: trimmed },
+          { id: Date.now() + 1, role: 'assistant', text: steps[nextStep].question },
+        ]);
+        setBookingStep(nextStep);
+      } else {
+        // Booking complete
+        const finalData = { ...bookingData, [currentStep.key]: trimmed };
+        setBookingData(finalData);
+
+        setMessages((current) => [
+          ...current,
+          { id: Date.now(), role: 'user', text: trimmed },
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            text: `Perfect! 📅 I've collected your information:\n\n• Name: ${finalData.name}\n• Email: ${finalData.email}\n• Phone: ${finalData.phone}\n• Company: ${finalData.company}\n• Date: ${finalData.date}\n• Time: ${finalData.time}\n\nScroll down to the "Book a Demo" form and your info will be auto-filled. Click Submit to confirm your demo booking!`,
+          },
+        ]);
+
+        // Auto-fill the form
+        setTimeout(() => {
+          const formInputs = {
+            name: finalData.name,
+            email: finalData.email,
+            phone: finalData.phone,
+            company: finalData.company,
+            date: finalData.date,
+            time: finalData.time,
+            platform: finalData.platform,
+          };
+
+          window.dispatchEvent(
+            new CustomEvent('autofillBookingForm', {
+              detail: formInputs,
+            })
+          );
+
+          // Scroll to form
+          setTimeout(() => {
+            const formSection = document.getElementById('booking');
+            if (formSection) {
+              formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 300);
+        }, 100);
+
+        setIsBookingMode(false);
+      }
+    }
   };
 
   return (
@@ -183,10 +288,10 @@ function HomepageSupportWidget() {
             type="text"
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="Type your question..."
+            placeholder={isBookingMode ? 'Enter your information...' : 'Type your question...'}
           />
           <button type="submit" className="ep-floating-widget-send" disabled={!canSend}>
-            Ask
+            {isBookingMode ? 'Next' : 'Ask'}
           </button>
         </form>
 

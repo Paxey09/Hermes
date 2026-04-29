@@ -120,6 +120,28 @@ function LandingPage() {
       }
     }, [authSuccess, authError]);
 
+    // Listen for auto-fill booking form event from chatbot
+    useEffect(() => {
+      const handleAutofillBooking = (event) => {
+        const bookingData = event.detail;
+        if (bookingData) {
+          setForm((prev) => ({
+            ...prev,
+            name: bookingData.name || prev.name,
+            email: bookingData.email || prev.email,
+            phone: bookingData.phone || prev.phone,
+            company: bookingData.company || prev.company,
+            date: bookingData.date || prev.date,
+            time: bookingData.time || prev.time,
+            platform: bookingData.platform || prev.platform,
+          }));
+        }
+      };
+
+      window.addEventListener('autofillBookingForm', handleAutofillBooking);
+      return () => window.removeEventListener('autofillBookingForm', handleAutofillBooking);
+    }, []);
+
     // ── HANDLE SIGN UP ──
     const handleSignUp = async (formData) => {
       setAuthLoading(true);
