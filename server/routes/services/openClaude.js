@@ -16,6 +16,10 @@ const XAI_MODEL_MAP = {
   "claude-3-sonnet-20240229": "grok-2-latest",
   "claude-3-opus-20240229": "grok-2-latest",
   "claude-3-haiku-20240307": "grok-2-latest",
+  "openai/gpt-4o-mini": "grok-2-latest",
+  "gpt-4o-mini": "grok-2-latest",
+  "openai/gpt-4o": "grok-2-latest",
+  "gpt-4o": "grok-2-latest",
 };
 
 const SUPPORTED_TOPICS = [
@@ -363,7 +367,7 @@ async function callViaOpenRouter({ messages, model, options, apiKey }) {
 }
 
 async function callViaXAI({ messages, model, options, apiKey }) {
-  const mappedModel = XAI_MODEL_MAP[model] || model || DEFAULT_MODEL;
+  const mappedModel = XAI_MODEL_MAP[model] || (typeof model === "string" && model.startsWith("grok-") ? model : DEFAULT_MODEL);
 
   const buildPayload = (selectedModel) => ({
     model: selectedModel,

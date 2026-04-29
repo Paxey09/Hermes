@@ -363,7 +363,11 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
           'claude-3-sonnet-20240229': 'grok-2-latest',
           'claude-3-opus-20240229': 'grok-2-latest',
           'claude-3-haiku-20240307': 'grok-2-latest',
-        }[body?.model] || body?.model || defaultModel
+          'openai/gpt-4o-mini': 'grok-2-latest',
+          'gpt-4o-mini': 'grok-2-latest',
+          'openai/gpt-4o': 'grok-2-latest',
+          'gpt-4o': 'grok-2-latest',
+        }[body?.model] || (typeof body?.model === 'string' && body.model.startsWith('grok-') ? body.model : defaultModel)
       : provider === 'openrouter'
       ? {
           'claude-3-sonnet-20240229': 'anthropic/claude-3.5-sonnet',
