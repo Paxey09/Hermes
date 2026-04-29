@@ -50,14 +50,12 @@ Create `.env` files in both `client` and `server` if you want to run locally.
 VITE_API_URL=/api
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_OPENCLAUDE_API_KEY=your_openclaude_api_key
 ```
 
 **server/.env:**
 ```bash
 PORT=3000
-OPENCLAUDE_API_KEY=your_openclaude_api_key
-OPENROUTER_API_KEY=your_openrouter_api_key
+XAI_API_KEY=your_xai_grok_api_key
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 FB_VERIFY_TOKEN=your_fb_verify_token
@@ -74,8 +72,7 @@ Add these environment variables in Render for the backend service:
 
 ```bash
 NODE_ENV=production
-OPENCLAUDE_API_KEY=your_openclaude_api_key
-OPENROUTER_API_KEY=your_openrouter_api_key
+XAI_API_KEY=your_xai_grok_api_key
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 FB_VERIFY_TOKEN=your_fb_verify_token

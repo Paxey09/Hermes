@@ -3,11 +3,19 @@ const router = express.Router();
 
 const OPENCLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+const DEFAULT_MODEL = process.env.XAI_API_KEY ? "grok-2-latest" : "claude-3-sonnet-20240229";
 
 const OPENROUTER_MODEL_MAP = {
   "claude-3-sonnet-20240229": "anthropic/claude-3.5-sonnet",
   "claude-3-opus-20240229": "anthropic/claude-3-opus",
   "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
+};
+
+const XAI_MODEL_MAP = {
+  "claude-3-sonnet-20240229": "grok-2-latest",
+  "claude-3-opus-20240229": "grok-2-latest",
+  "claude-3-haiku-20240307": "grok-2-latest",
 };
 
 const SUPPORTED_TOPICS = [
@@ -247,7 +255,7 @@ function buildOutOfScopeResponse(model) {
         text: `I can only help with: ${SUPPORTED_TOPICS.join(", ")}.`,
       },
     ],
-    model: model || "claude-3-sonnet-20240229",
+    model: model || DEFAULT_MODEL,
     stop_reason: "end_turn",
     restricted: true,
   };
@@ -282,7 +290,7 @@ function buildBusinessContextFallback(model, options = {}) {
     type: "message",
     role: "assistant",
     content: [{ type: "text", text: parts.join(" ") }],
-    model: model || "claude-3-sonnet-20240229",
+    model: model || DEFAULT_MODEL,
     stop_reason: "end_turn",
   };
 }
@@ -354,9 +362,53 @@ async function callViaOpenRouter({ messages, model, options, apiKey }) {
   };
 }
 
+async function callViaXAI({ messages, model, options, apiKey }) {
+  const mappedModel = XAI_MODEL_MAP[model] || model || DEFAULT_MODEL;
+
+  const buildPayload = (selectedModel) => ({
+    model: selectedModel,
+    messages: buildPromptedMessages(messages, options),
+    max_tokens: options?.maxTokens || 1024,
+    temperature: options?.temperature ?? 0.7,
+  });
+
+  const response = await fetch(XAI_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(buildPayload(mappedModel)),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || response.statusText || "xAI request failed");
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+
+  const text = data?.choices?.[0]?.message?.content || "No response text returned.";
+  return {
+    id: data.id || "msg_" + Date.now(),
+    type: "message",
+    role: "assistant",
+    content: [{ type: "text", text }],
+    model: data.model || mappedModel,
+    stop_reason: data?.choices?.[0]?.finish_reason || "end_turn",
+  };
+}
+
 async function callOpenClaude({ messages, model, options }) {
+  const xaiApiKey = process.env.XAI_API_KEY;
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   const openClaudeApiKey = process.env.OPENCLAUDE_API_KEY;
+
+  if (xaiApiKey) {
+    return callViaXAI({ messages, model, options, apiKey: xaiApiKey });
+  }
 
   if (openRouterApiKey) {
     if (!openRouterApiKey.startsWith("sk-or-v1-")) {
@@ -389,7 +441,7 @@ async function callOpenClaude({ messages, model, options }) {
   }
 
   const payload = {
-    model: model || "claude-3-sonnet-20240229",
+    model: model || DEFAULT_MODEL,
     max_tokens: options?.maxTokens || 1024,
     temperature: options?.temperature ?? 0.7,
     messages: buildPromptedMessages(messages, options),
@@ -423,7 +475,9 @@ async function callOpenClaude({ messages, model, options }) {
 
 // OpenClaude Service Routes
 router.get("/health", (req, res) => {
-  const provider = process.env.OPENROUTER_API_KEY
+  const provider = process.env.XAI_API_KEY
+    ? "xai"
+    : process.env.OPENROUTER_API_KEY
     ? "openrouter"
     : process.env.OPENCLAUDE_API_KEY
     ? "anthropic"
@@ -433,7 +487,7 @@ router.get("/health", (req, res) => {
     status: "healthy",
     service: "OpenClaude",
     provider,
-    configured: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENCLAUDE_API_KEY),
+    configured: Boolean(process.env.XAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENCLAUDE_API_KEY),
     timestamp: new Date().toISOString()
   });
 });

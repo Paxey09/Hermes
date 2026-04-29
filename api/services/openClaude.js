@@ -239,7 +239,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
         text: `I can only help with: ${SUPPORTED_TOPICS.join(', ')}.`,
       },
     ],
-    model: model || 'claude-3-sonnet-20240229',
+    model: model || (process.env.XAI_API_KEY ? 'grok-2-latest' : 'claude-3-sonnet-20240229'),
     stop_reason: 'end_turn',
     restricted: true,
   });
@@ -273,7 +273,7 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       type: 'message',
       role: 'assistant',
       content: [{ type: 'text', text: parts.join(' ') }],
-      model: model || 'claude-3-sonnet-20240229',
+      model: model || (process.env.XAI_API_KEY ? 'grok-2-latest' : 'claude-3-sonnet-20240229'),
       stop_reason: 'end_turn',
     };
   };
@@ -326,8 +326,12 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
     return res.status(200).json(buildOutOfScopeResponse(body?.model));
   }
 
-  const apiKey = process.env.OPENCLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const xaiApiKey = process.env.XAI_API_KEY;
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const anthropicApiKey = process.env.OPENCLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const defaultModel = process.env.XAI_API_KEY ? 'grok-2-latest' : 'claude-3-sonnet-20240229';
+
+  if (!xaiApiKey && !openRouterApiKey && !anthropicApiKey) {
     const userMessage = body?.messages?.[body.messages.length - 1]?.content || '';
     return res.status(200).json({
       id: 'demo_' + Date.now(),
@@ -336,28 +340,40 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       content: [
         {
           type: 'text',
-          text: `Demo mode: no OPENCLAUDE_API_KEY configured yet. You said: ${userMessage}`,
+          text: `Demo mode: no AI API key configured yet. You said: ${userMessage}`,
         },
       ],
-      model: body?.model || 'claude-3-sonnet-20240229',
+      model: body?.model || defaultModel,
       stop_reason: 'end_turn',
       demo_mode: true,
     });
   }
 
-  const useOpenRouter = apiKey.startsWith('sk-or-v1-');
+  const provider = xaiApiKey ? 'xai' : openRouterApiKey ? 'openrouter' : 'anthropic';
 
   try {
-    const targetUrl = useOpenRouter
+    const targetUrl = provider === 'xai'
+      ? 'https://api.x.ai/v1/chat/completions'
+      : provider === 'openrouter'
       ? 'https://openrouter.ai/api/v1/chat/completions'
       : `https://api.anthropic.com/v1${endpoint}`;
 
-    const mappedModel = body?.model === 'claude-3-sonnet-20240229'
-      ? 'anthropic/claude-3.5-sonnet'
-      : body?.model;
+    const mappedModel = provider === 'xai'
+      ? {
+          'claude-3-sonnet-20240229': 'grok-2-latest',
+          'claude-3-opus-20240229': 'grok-2-latest',
+          'claude-3-haiku-20240307': 'grok-2-latest',
+        }[body?.model] || body?.model || defaultModel
+      : provider === 'openrouter'
+      ? {
+          'claude-3-sonnet-20240229': 'anthropic/claude-3.5-sonnet',
+          'claude-3-opus-20240229': 'anthropic/claude-3-opus',
+          'claude-3-haiku-20240307': 'anthropic/claude-3-haiku',
+        }[body?.model] || body?.model || 'anthropic/claude-3.5-sonnet'
+      : body?.model || defaultModel;
 
-    const openRouterPayload = {
-      model: mappedModel || 'anthropic/claude-3.5-sonnet',
+    const sharedPayload = {
+      model: mappedModel,
       messages: buildPromptedMessages(body?.messages || [], body?.options || {}),
       max_tokens: body?.max_tokens || 1024,
       temperature: body?.temperature ?? 0.7,
@@ -365,28 +381,28 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
 
     const anthropicPayload = {
       ...body,
-      messages: buildPromptedMessages(body?.messages || [], body?.options || {}),
+      messages: sharedPayload.messages,
     };
 
     const runRequest = async (payload) => fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(useOpenRouter
-          ? { Authorization: `Bearer ${apiKey}` }
+        ...(provider === 'xai' || provider === 'openrouter'
+          ? { Authorization: `Bearer ${provider === 'xai' ? xaiApiKey : openRouterApiKey}` }
           : {
-              'x-api-key': apiKey,
+              'x-api-key': anthropicApiKey,
               'anthropic-version': '2023-06-01',
             }),
       },
       body: JSON.stringify(payload),
     });
 
-    let response = await runRequest(useOpenRouter ? openRouterPayload : anthropicPayload);
+    let response = await runRequest(provider === 'anthropic' ? anthropicPayload : sharedPayload);
     let data = await response.json();
 
-    if (useOpenRouter && !response.ok && response.status === 404) {
-      response = await runRequest({ ...openRouterPayload, model: 'openrouter/auto' });
+    if (provider === 'openrouter' && !response.ok && response.status === 404) {
+      response = await runRequest({ ...sharedPayload, model: 'openrouter/auto' });
       data = await response.json();
     }
 
@@ -394,14 +410,14 @@ Never invent company policies, pricing, or guarantees. If data is missing, say w
       return res.status(response.status).json(data);
     }
 
-    if (useOpenRouter) {
+    if (provider === 'xai' || provider === 'openrouter') {
       const text = data?.choices?.[0]?.message?.content || 'No response text returned.';
       return res.status(200).json({
         id: data.id || 'msg_' + Date.now(),
         type: 'message',
         role: 'assistant',
         content: [{ type: 'text', text }],
-        model: data.model || openRouterPayload.model,
+        model: data.model || sharedPayload.model,
         stop_reason: data?.choices?.[0]?.finish_reason || 'end_turn',
       });
     }
