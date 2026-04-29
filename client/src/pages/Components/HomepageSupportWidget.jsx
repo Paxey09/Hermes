@@ -38,6 +38,7 @@ function HomepageSupportWidget() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
@@ -115,81 +116,84 @@ function HomepageSupportWidget() {
   };
 
   return (
-    <section className="ep-section ep-home-support-section" id="support">
-      <div className="ep-section-inner ep-home-support-inner">
-        <div className="ep-home-support-copy">
-          <p className="ep-section-eyebrow">Customer Support</p>
-          <h2 className="ep-section-title">
-            Ask anything <span className="ep-gold">without signing in</span>
-          </h2>
-          <p className="ep-section-sub">
-            Visitors can type a question and get an instant chatbot reply about service details,
-            pricing, booking shortcuts, and company information.
-          </p>
+    <>
+      {/* Floating Widget Button */}
+      <button
+        className="ep-floating-widget-btn"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Open support chat"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
 
-          <div className="ep-home-support-topics">
-            {QUICK_TOPICS.map((topic) => (
-              <button
-                key={topic.id}
-                type="button"
-                className="ep-home-topic-chip"
-                onClick={() => handleQuickTopic(topic)}
-                disabled={loading}
-              >
-                {topic.label}
-              </button>
-            ))}
+      {/* Floating Widget Panel */}
+      <div className={`ep-floating-widget-container ${isOpen ? 'is-open' : ''}`}>
+        <div className="ep-floating-widget-header">
+          <div>
+            <h3>Customer Support</h3>
+            <p>We typically reply in minutes</p>
           </div>
+          <button
+            className="ep-floating-widget-close"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close support chat"
+          >
+            ✕
+          </button>
         </div>
 
-        <div className="ep-home-support-card">
-          <div className="ep-home-support-card-head">
-            <div>
-              <h3>Customer Support</h3>
-              <p>We typically reply in minutes</p>
-            </div>
-            <span className={`ep-home-support-status ${loading ? 'is-typing' : ''}`}>
-              {loading ? 'Typing...' : 'Online'}
-            </span>
-          </div>
-
-          <div className="ep-home-support-chat">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`ep-home-support-bubble ${message.role === 'user' ? 'user' : 'assistant'}`}
-              >
-                {message.text}
-              </div>
-            ))}
-
-            {loading && (
-              <div className="ep-home-support-bubble assistant ep-home-typing">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <form className="ep-home-support-form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Type your question..."
-            />
-            <button type="submit" className="ep-home-support-send" disabled={!canSend}>
-              Ask
+        <div className="ep-floating-widget-quick-topics">
+          {QUICK_TOPICS.map((topic) => (
+            <button
+              key={topic.id}
+              type="button"
+              className="ep-floating-topic-chip"
+              onClick={() => handleQuickTopic(topic)}
+              disabled={loading}
+            >
+              {topic.label}
             </button>
-          </form>
-
-          {error && <p className="ep-home-support-error">{error}</p>}
+          ))}
         </div>
+
+        <div className="ep-floating-widget-chat">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`ep-floating-widget-bubble ${message.role === 'user' ? 'user' : 'assistant'}`}
+            >
+              {message.text}
+            </div>
+          ))}
+
+          {loading && (
+            <div className="ep-floating-widget-bubble assistant ep-floating-typing">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        <form className="ep-floating-widget-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Type your question..."
+          />
+          <button type="submit" className="ep-floating-widget-send" disabled={!canSend}>
+            Ask
+          </button>
+        </form>
+
+        {error && <p className="ep-floating-widget-error">{error}</p>}
       </div>
-    </section>
+    </>
   );
 }
 
