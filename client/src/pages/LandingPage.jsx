@@ -784,4 +784,6 @@ function LandingPage() {
     );
   }
 
+<HomepageSupportWidget />
+
 export default LandingPage;

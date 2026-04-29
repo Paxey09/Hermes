@@ -486,7 +486,7 @@ function compactFacebookReply(rawText) {
   cleaned = cleaned.replace(/^"|"$/g, "");
   cleaned = cleaned.replace(/\s+/g, " ").trim();
 
-  const maxChars = 420;
+  const maxChars = parseInt(process.env.FB_REPLY_MAX_CHARS, 10) || 1500;
   if (cleaned.length > maxChars) {
     const short = cleaned.slice(0, maxChars);
     const lastSentenceEnd = Math.max(short.lastIndexOf("."), short.lastIndexOf("!"), short.lastIndexOf("?"));
@@ -595,7 +595,7 @@ async function generateChatbotReply(input, context = {}) {
       messages,
       model: DEFAULT_CHATBOT_MODEL,
       options: {
-        maxTokens: 40,
+        maxTokens: parseInt(process.env.FB_CHATBOT_MAX_TOKENS, 10) || 512,
         temperature: 0.65,
         channel: "facebook",
         promptMode: "lite",
