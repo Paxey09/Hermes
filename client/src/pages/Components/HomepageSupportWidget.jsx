@@ -5,23 +5,23 @@ import '../../styles/HomepageSupportWidget.css';
 const QUICK_TOPICS = [
   {
     id: 'about-service',
-    label: 'About Service',
-    prompt: 'Tell me about your service and what you can help with.',
+    label: 'What is Hermes?',
+    prompt: 'Can you explain what Hermes is and what problems it solves for businesses?',
   },
   {
-    id: 'pricing',
-    label: 'Pricing',
-    prompt: 'What are your pricing options or packages?',
+    id: 'features',
+    label: 'Key Features',
+    prompt: 'What are the main features and modules of Hermes? Tell me about Inbox, CRM, ERP, Analytics, Chatbot, and Social Ads.',
   },
   {
-    id: 'booking',
-    label: 'Booking Shortcut',
-    prompt: 'How can I book a demo or consultation quickly?',
+    id: 'benefits',
+    label: 'Benefits',
+    prompt: 'What are the key benefits of using Hermes for my business?',
   },
   {
-    id: 'company',
-    label: 'Company Details',
-    prompt: 'Can you tell me more about your company details and background?',
+    id: 'demo',
+    label: 'Book Demo',
+    prompt: 'How can I book a demo or get started with Hermes?',
   },
 ];
 
@@ -29,7 +29,7 @@ const INITIAL_MESSAGES = [
   {
     id: 1,
     role: 'assistant',
-    text: 'Hi! I can answer questions about our service, pricing, booking, and company details. Type your question below or tap a topic to start.',
+    text: 'Hi! 👋 I\'m here to help you understand Hermes - your all-in-one business platform for managing inbox, customers, inventory, analytics, and AI-powered support across all channels. What would you like to know?',
   },
 ];
 
@@ -78,17 +78,17 @@ function HomepageSupportWidget() {
     try {
       const result = await openClaudeService.chatCompletion(
         nextMessages.map((msg) => ({ role: msg.role, content: msg.text })),
-        'llama-3.3-70b-versatile',
+        'claude-3-5-sonnet-20241022',
         {
           surface: 'homepage',
           channel: 'homepage',
-          promptMode: 'lite',
-          temperature: 0.35,
-          maxTokens: 240,
-          pageName: 'ExponifyPH',
-          businessType: 'Digital services',
-          productServices: 'About our service, pricing, booking shortcuts, and company details.',
-          productServicePriceRanges: 'Custom quote depending on the package and project scope.',
+          promptMode: 'full',
+          temperature: 0.7,
+          maxTokens: 1000,
+          pageName: 'Hermes Business Suite',
+          businessType: 'All-in-one business solution',
+          productServices: 'Hermes Inbox, CRM, ERP, Analytics, AI Chatbot, Social Ads - unified business platform for multi-channel management.',
+          productServicePriceRanges: 'Custom enterprise quotes based on features and scale.',
           websiteLink: typeof window !== 'undefined' ? window.location.origin : '',
         }
       );
