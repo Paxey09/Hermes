@@ -658,10 +658,18 @@ router.post("/chat", async (req, res) => {
 
   try {
     console.debug("[openclaude/chat] options", {
+      surface: typeof options?.surface === "string" ? options.surface : null,
       hasOptions: Boolean(options),
       pageName: typeof options?.pageName === "string" ? options.pageName : null,
       businessType: typeof options?.businessType === "string" ? options.businessType : null,
       productServices: typeof options?.productServices === "string"
+          // Log which API key is being used
+          console.debug("[callOpenClaude] Using API:", {
+            isHomepage: groqCredentials.isHomepageSurface,
+            usingGroq: Boolean(groqApiKey),
+            groqModel: groqCredentials.model,
+          });
+
         ? options.productServices.slice(0, 200)
         : null,
       productServicePriceRanges:
