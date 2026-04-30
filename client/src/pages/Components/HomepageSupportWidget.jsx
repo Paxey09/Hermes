@@ -227,17 +227,35 @@ function HomepageSupportWidget() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Open support chat"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
+        <div className="ep-floating-btn-logo" aria-hidden>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="#ffd974" />
+            <g fill="#0a0e1a">
+              <path d="M12 7c-1.1 0-2 .9-2 2v.5c0 .3.2.5.5.5h3c.3 0 .5-.2.5-.5V9c0-1.1-.9-2-2-2z" />
+              <path d="M8.5 13c.83 0 1.5-.67 1.5-1.5S9.33 10 8.5 10 7 10.67 7 11.5 7.67 13 8.5 13zM15.5 13c.83 0 1.5-.67 1.5-1.5S16.33 10 15.5 10 14 10.67 14 11.5 14.67 13 15.5 13z" />
+            </g>
+          </svg>
+        </div>
       </button>
 
       {/* Floating Widget Panel */}
       <div className={`ep-floating-widget-container ${isOpen ? 'is-open' : ''}`}>
         <div className="ep-floating-widget-header">
-          <div>
-            <h3>Customer Support</h3>
-            <p>We typically reply in minutes</p>
+          <div className="ep-header-left">
+            <div className="ep-bot-avatar" aria-hidden>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="12" fill="#ffd974" />
+                <g transform="translate(4,4)" fill="#0a0e1a">
+                  <rect x="4" y="4" width="8" height="4" rx="2" />
+                  <circle cx="3" cy="6" r="1" />
+                  <circle cx="13" cy="6" r="1" />
+                </g>
+              </svg>
+            </div>
+            <div>
+              <h3>Expony</h3>
+              <p className="ep-status"><span className="ep-status-dot"/> Online · Typically replies instantly</p>
+            </div>
           </div>
           <button
             className="ep-floating-widget-close"
@@ -249,7 +267,7 @@ function HomepageSupportWidget() {
         </div>
 
         <div className="ep-floating-widget-quick-topics">
-          {QUICK_TOPICS.map((topic) => (
+          {QUICK_TOPICS.slice(0, 2).map((topic) => (
             <button
               key={topic.id}
               type="button"
@@ -257,9 +275,28 @@ function HomepageSupportWidget() {
               onClick={() => handleQuickTopic(topic)}
               disabled={loading}
             >
+              <span className="chip-icon">💡</span>
               {topic.label}
             </button>
           ))}
+
+          <div className="ep-quick-cta-row">
+            <button
+              type="button"
+              className="ep-floating-topic-chip primary"
+              onClick={() => handleQuickTopic(QUICK_TOPICS.find(t => t.id === 'demo'))}
+            >
+              📅 Book a free demo
+            </button>
+
+            <button
+              type="button"
+              className="ep-floating-topic-chip outline"
+              onClick={() => handleQuickTopic(QUICK_TOPICS.find(t => t.id === 'features'))}
+            >
+              What does Expony do?
+            </button>
+          </div>
         </div>
 
         <div className="ep-floating-widget-chat">
@@ -301,7 +338,7 @@ function HomepageSupportWidget() {
               type="text"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Type your question..."
+              placeholder="Ask about features, pricing, demo..."
             />
           )}
           <button type="submit" className="ep-floating-widget-send" disabled={!canSend}>

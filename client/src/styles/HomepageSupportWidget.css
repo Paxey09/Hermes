@@ -23,6 +23,17 @@
   box-shadow: 0 8px 30px rgba(201, 168, 76, 0.6);
 }
 
+.ep-floating-btn-logo {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #ffd974, #e6c07a 40%, #c9a84c 100%);
+  box-shadow: 0 12px 30px rgba(201, 168, 76, 0.25), 0 4px 12px rgba(0,0,0,0.45) inset;
+}
+
 /* Floating Widget Container */
 .ep-floating-widget-container {
   position: fixed;
@@ -52,11 +63,11 @@
 /* Header */
 .ep-floating-widget-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.4rem;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+  padding: 1rem 1rem;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.06);
 }
 
 .ep-floating-widget-header h3 {
@@ -91,6 +102,40 @@
   color: var(--ep-white);
 }
 
+.ep-header-left {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.ep-bot-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(201,168,76,0.18), 0 2px 6px rgba(0,0,0,0.6);
+}
+
+.ep-status {
+  color: var(--ep-white-dim);
+  font-size: 0.78rem;
+  margin: 0.2rem 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ep-status-dot {
+  width: 8px;
+  height: 8px;
+  background: #37d67a;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(55,214,122,0.35);
+  display: inline-block;
+}
+
 /* Quick Topics */
 .ep-floating-widget-quick-topics {
   display: flex;
@@ -109,6 +154,32 @@
   cursor: pointer;
   font-size: 0.8rem;
   transition: transform 0.25s var(--ep-ease-out), background 0.25s var(--ep-ease-out), border-color 0.25s var(--ep-ease-out);
+}
+
+.ep-floating-topic-chip .chip-icon {
+  margin-right: 0.5rem;
+}
+
+.ep-floating-topic-chip.primary {
+  background: linear-gradient(90deg, var(--ep-gold), var(--ep-gold-light));
+  color: #0a0e1a;
+  border: none;
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+}
+
+.ep-floating-topic-chip.outline {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.ep-quick-cta-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .ep-floating-topic-chip:hover:not(:disabled) {
