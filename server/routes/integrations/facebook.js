@@ -1169,6 +1169,34 @@ router.post("/", async (req, res) => {
         } else {
           // Special-case: user selected a "none" price-range option
           const normalizedIncoming = (incomingText || "").trim().toLowerCase();
+
+          // If user asks about prices directly, prefer returning a link when available
+          const priceQuery = /\b(price|prices|presyo|magkano|how much|magkano\s+po|magkano\s+ang)\b/i;
+          if (priceQuery.test(incomingText || "")) {
+            const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
+            const isTagalog = /\b(magkano|presyo)\b/i.test(incomingText || "");
+
+            if (linkToShow) {
+              replyText = isTagalog
+                ? `Makikita mo ang aming mga presyo dito: ${linkToShow}. Kung gusto mo ng tulong, i-chat mo lang kami at tutulungan ka namin.`
+                : `You can see our prices here: ${linkToShow}. If you'd like help, just message us here and we'll assist you.`;
+            } else if (productServicePriceRanges) {
+              replyText = compactFacebookReply(buildBusinessFallbackReply({
+                pageName,
+                productServices,
+                businessType,
+                productServicePriceRanges,
+                websiteLink,
+                shoppeLink,
+                lazadaLink,
+                tiktokLink,
+              }, incomingText));
+            } else {
+              replyText = isTagalog
+                ? "Wala pang presyo na available ngayon. I-chat mo lang kami at tutulungan ka namin." 
+                : "Price not available yet. If you want, just send us a quick message here and we'll help you.";
+            }
+          } else {
           if (
             (normalizedIncoming === "none" || normalizedIncoming === "wala") &&
             (websiteLink || shoppeLink || lazadaLink || tiktokLink || productServicePriceRanges)
