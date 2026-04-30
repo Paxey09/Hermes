@@ -22,6 +22,7 @@ const fbRuntimeConfig = {
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
+  tiktokLink: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -116,6 +117,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.lazada_link === "string" && record.lazada_link.trim()) ||
     (typeof record.lazadaLink === "string" && record.lazadaLink.trim()) ||
     "";
+  const tiktokLink =
+    (typeof record.tiktok_link === "string" && record.tiktok_link.trim()) ||
+    (typeof record.tiktokLink === "string" && record.tiktokLink.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -129,6 +134,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    tiktokLink,
     accessMode,
   };
 }
@@ -222,6 +228,7 @@ async function saveSupabasePageToken(payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    tiktok_link: normalizeText(payload.tiktokLink),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -303,6 +310,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    tiktok_link: normalizeText(payload.tiktokLink),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
@@ -402,9 +410,9 @@ async function getFacebookConfig(options = {}) {
     lazadaLink:
       supabaseConfig?.lazadaLink ||
       (!isPageSpecificLookup ? fbRuntimeConfig.lazadaLink || process.env.FB_LAZADA_LINK || "" : ""),
-    accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
-    verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
-    appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
+    tiktokLink:
+      supabaseConfig?.tiktokLink ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.tiktokLink || process.env.FB_TIKTOK_LINK || "" : ""),
   };
 }
 
@@ -421,6 +429,7 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.websiteLink === "string") fbRuntimeConfig.websiteLink = normalizeText(payload.websiteLink);
   if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
+  if (typeof payload.tiktokLink === "string") fbRuntimeConfig.tiktokLink = normalizeText(payload.tiktokLink);
   if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = normalizeText(payload.verifyToken);
   if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = normalizeText(payload.appSecret);
 }
@@ -568,6 +577,10 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
   if (lazadaLink) {
     parts.push(langTagalog ? `Lazada: ${lazadaLink}` : `Lazada: ${lazadaLink}`);
   }
+  if (typeof context.tiktokLink === "string" && context.tiktokLink) {
+    const tiktokLink = context.tiktokLink.trim();
+    parts.push(langTagalog ? `TikTok Shop: ${tiktokLink}` : `TikTok Shop: ${tiktokLink}`);
+  }
 
   return parts.join(" ");
 }
@@ -608,6 +621,7 @@ async function generateChatbotReply(input, context = {}) {
         websiteLink: typeof context.websiteLink === "string" ? context.websiteLink : "",
         shoppeLink: typeof context.shoppeLink === "string" ? context.shoppeLink : "",
         lazadaLink: typeof context.lazadaLink === "string" ? context.lazadaLink : "",
+        tiktokLink: typeof context.tiktokLink === "string" ? context.tiktokLink : "",
       },
     }),
   });
@@ -704,7 +718,8 @@ function isMessageOnTopic(userMessage = "", context = {}) {
     context.productServicePriceRanges ||
     context.websiteLink ||
     context.shoppeLink ||
-    context.lazadaLink;
+    context.lazadaLink ||
+    context.tiktokLink;
 
   if (hasBusinessContext) {
     const hasRelevantKeyword = businessKeywords.some((keyword) =>
@@ -732,7 +747,8 @@ function buildOutOfTopicResponse(context = {}) {
     context.productServicePriceRanges ||
     context.websiteLink ||
     context.shoppeLink ||
-    context.lazadaLink;
+    context.lazadaLink ||
+    context.tiktokLink;
 
   if (!hasBusinessContext) {
     return "Hi! I can help with questions about products, services, pricing, and bookings. What would you like to know?";
@@ -818,6 +834,7 @@ router.get("/admin/status", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    tiktokLink: config.tiktokLink || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -848,6 +865,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    tiktokLink,
   } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
@@ -867,6 +885,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    tiktokLink,
   });
 
   try {
@@ -881,6 +900,7 @@ router.post("/admin/connect", async (req, res) => {
       websiteLink,
       shoppeLink,
       lazadaLink,
+      tiktokLink,
     });
   } catch (error) {
     return res.status(500).json({
@@ -903,6 +923,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    tiktokLink: config.tiktokLink || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -966,6 +987,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    tiktokLink,
   } = req.body || {};
 
   try {
@@ -977,6 +999,7 @@ router.post("/admin/page-details", async (req, res) => {
       websiteLink,
       shoppeLink,
       lazadaLink,
+      tiktokLink,
     });
   } catch (error) {
     return res.status(400).json({
@@ -993,6 +1016,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    tiktokLink,
   });
 
   const config = await getFacebookConfig();
@@ -1010,6 +1034,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    tiktokLink: config.tiktokLink || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -1099,6 +1124,7 @@ router.post("/", async (req, res) => {
         const websiteLink = pageConfig.websiteLink || "";
         const shoppeLink = pageConfig.shoppeLink || "";
         const lazadaLink = pageConfig.lazadaLink || "";
+        const tiktokLink = pageConfig.tiktokLink || "";
         const memoryPageId = pageConfig.pageId || pageId;
         const history = getConversationHistory(memoryPageId, senderId);
         const requestMessages = [...history, { role: "user", content: incomingText }];
@@ -1112,6 +1138,7 @@ router.post("/", async (req, res) => {
           websiteLink,
           shoppeLink,
           lazadaLink,
+          tiktokLink,
           lastUserMessage: incomingText,
         });
 
@@ -1133,6 +1160,22 @@ router.post("/", async (req, res) => {
             })
           );
         } else {
+          // Special-case: user selected a "none" price-range option
+          const normalizedIncoming = (incomingText || "").trim().toLowerCase();
+          if (
+            (normalizedIncoming === "none" || normalizedIncoming === "wala") &&
+            (websiteLink || shoppeLink || lazadaLink || tiktokLink || productServicePriceRanges)
+          ) {
+            const isTagalog = /\b(ano|saan|magkano|may|wala|po|kayo|kami)\b/i.test(incomingText || "");
+            const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
+            if (linkToShow) {
+              replyText = isTagalog
+                ? `Pwede mong makita ang mga presyo dito: ${linkToShow}`
+                : `You can see the prices here: ${linkToShow}`;
+            } else {
+              replyText = isTagalog ? "Wala pang presyo na available." : "Price not available yet";
+            }
+          } else {
           // Message is on-topic - generate AI response
           replyText = await generateChatbotReply(requestMessages, {
             businessType,
@@ -1143,6 +1186,7 @@ router.post("/", async (req, res) => {
             shoppeLink,
             lazadaLink,
           });
+          }
         }
 
         if (chatbotEnabled) {

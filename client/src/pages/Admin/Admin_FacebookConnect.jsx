@@ -32,6 +32,7 @@ function Admin_FacebookConnect() {
     websiteLink: '',
     shoppeLink: '',
     lazadaLink: '',
+    tiktokLink: '',
     generatedToken: '',
   });
 
@@ -43,6 +44,7 @@ function Admin_FacebookConnect() {
     websiteLink: '',
     shoppeLink: '',
     lazadaLink: '',
+    tiktokLink: '',
   });
 
   const connectedPages = Array.isArray(status?.connectedPages) ? status.connectedPages : [];
@@ -63,6 +65,7 @@ function Admin_FacebookConnect() {
         websiteLink: data.websiteLink || current.websiteLink,
         shoppeLink: data.shoppeLink || current.shoppeLink,
         lazadaLink: data.lazadaLink || current.lazadaLink,
+        tiktokLink: data.tiktokLink || current.tiktokLink,
       }));
     } catch (loadError) {
       setError(loadError.message || 'Failed to load Facebook integration status.');
@@ -107,6 +110,7 @@ function Admin_FacebookConnect() {
         websiteLink: form.websiteLink,
         shoppeLink: form.shoppeLink,
         lazadaLink: form.lazadaLink,
+        tiktokLink: form.tiktokLink,
         pageAccessToken: form.generatedToken,
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || 'enable',
@@ -182,6 +186,7 @@ function Admin_FacebookConnect() {
       websiteLink: page?.websiteLink || '',
       shoppeLink: page?.shoppeLink || '',
       lazadaLink: page?.lazadaLink || '',
+      tiktokLink: page?.tiktokLink || '',
     });
     setError('');
     setSuccess('');
@@ -197,6 +202,7 @@ function Admin_FacebookConnect() {
       websiteLink: '',
       shoppeLink: '',
       lazadaLink: '',
+      tiktokLink: '',
     });
   };
 
@@ -220,6 +226,7 @@ function Admin_FacebookConnect() {
         websiteLink: editForm.websiteLink,
         shoppeLink: editForm.shoppeLink,
         lazadaLink: editForm.lazadaLink,
+        tiktokLink: editForm.tiktokLink,
       });
 
       setStatus(data);
@@ -343,6 +350,10 @@ function Admin_FacebookConnect() {
                       <span>{displayValue(page.lazadaLink)}</span>
                     </div>
                     <div className="fb-page-detail-item">
+                      <span className="fb-page-column-label">TikTok Shop</span>
+                      <span>{displayValue(page.tiktokLink)}</span>
+                    </div>
+                    <div className="fb-page-detail-item">
                       <span className="fb-page-column-label">Webhook Subscription</span>
                       <span>{status?.subscription || 'messages and messaging_postbacks'}</span>
                     </div>
@@ -438,6 +449,17 @@ function Admin_FacebookConnect() {
                             value={editForm.lazadaLink}
                             onChange={onEditChange}
                             placeholder="https://www.lazada.com.ph/shop/your-shop"
+                          />
+                        </label>
+
+                        <label>
+                          <span>TikTok Shop Link</span>
+                          <input
+                            type="url"
+                            name="tiktokLink"
+                            value={editForm.tiktokLink}
+                            onChange={onEditChange}
+                            placeholder="https://shop.tiktok.com/your-shop"
                           />
                         </label>
                       </div>
@@ -557,6 +579,17 @@ function Admin_FacebookConnect() {
                 value={form.lazadaLink}
                 onChange={onChange}
                 placeholder="https://www.lazada.com.ph/shop/your-shop"
+              />
+            </label>
+
+            <label>
+              <span>TikTok Shop Link</span>
+              <input
+                type="url"
+                name="tiktokLink"
+                value={form.tiktokLink}
+                onChange={onChange}
+                placeholder="https://shop.tiktok.com/your-shop"
               />
             </label>
 
