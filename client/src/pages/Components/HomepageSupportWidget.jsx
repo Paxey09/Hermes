@@ -87,8 +87,18 @@ function HomepageSupportWidget() {
     setError('');
 
     try {
+      const systemMessage = {
+        role: 'system',
+        content: 'You are Expony, the customer support AI for Exponify. You ONLY answer questions about Exponify and its features, pricing, demos, and services. IMPORTANT: If a user asks about ANY topic unrelated to Exponify (e.g., math, general trivia, coding, history, science, etc.), you MUST refuse politely and redirect. Do NOT answer off-topic questions, no matter how simple. Example redirect: "I\'m here to help with Exponify! Is there anything you\'d like to know about our features, pricing, or how to get started?"',
+      };
+
+      const messagesWithSystem = [
+        systemMessage,
+        ...nextMessages.map((msg) => ({ role: msg.role, content: msg.text })),
+      ];
+
       const result = await openClaudeService.chatCompletion(
-        nextMessages.map((msg) => ({ role: msg.role, content: msg.text })),
+        messagesWithSystem,
         'claude-3-5-sonnet-20241022',
         {
           surface: 'homepage',
@@ -100,7 +110,6 @@ function HomepageSupportWidget() {
           businessType: 'All-in-one business solution',
           productServices: 'Exponify - unified platform with Inbox (unified messaging), CRM (customer management), ERP (inventory & stock), Analytics (data insights), AI Chatbot (24/7 auto-replies), and Social Ads (campaign optimization).',
           productServicePriceRanges: 'Custom enterprise quotes based on features and scale.',
-          systemInstruction: 'You are Expony, the customer support AI for Exponify. You ONLY answer questions about Exponify and its features, pricing, demos, and services. If a user asks about topics unrelated to Exponify (e.g., math, general trivia, other products, coding, etc.), politely decline and redirect them to ask about Exponify. Example: "I\'m specifically here to help with questions about Exponify. Is there anything you\'d like to know about our platform, features, or services?"',
         }
       );
 
