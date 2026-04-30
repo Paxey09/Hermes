@@ -643,6 +643,113 @@ async function generateChatbotReply(input, context = {}) {
   return replyText;
 }
 
+function isMessageOnTopic(userMessage = "", context = {}) {
+  // Keywords related to business context
+  const businessKeywords = [
+    // General inquiry
+    "product", "service", "offer", "package", "plan", "feature",
+    "price", "cost", "rate", "fee", "payment", "billing",
+    "order", "buy", "purchase", "sell", "booking", "appointment",
+    "schedule", "available", "time", "date", "contact",
+    "info", "details", "help", "support", "question",
+    "what", "how", "where", "when", "why", "can",
+    "how much", "magkano", "magkain", "anong", "paano", "saan",
+    "website", "link", "facebook", "shopee", "lazada", "social",
+    "business", "company", "page", "account", "store",
+    // Tagalog keywords
+    "produkto", "serbisyo", "alok", "pakete", "presyo", "bayad",
+    "bili", "bumili", "magbili", "order", "booking", "appointment",
+    "oras", "schedule", "available", "tanong", "tulong", "suporta",
+    "tawag", "chat", "mensahe", "contact", "kumuha",
+  ];
+
+  // Out-of-topic indicators (strict pattern matching)
+  const outOfTopicPatterns = [
+    /^\d+\s*\+\s*\d+/, // math like "1+1"
+    /^(\d+[-\s]?)*\d+$/, // just numbers
+    /^(hello|hi|hey|good morning|good afternoon|good evening)\s*$/i, // greetings only
+    /^(bye|goodbye|see you|take care)\s*$/i, // farewells only
+    /^(thanks|thank you|tq|thx)\s*$/i, // thanks only
+    /^(what|who|where|when|why)\s*$/i, // single question words
+    /^\?+$/, // just question marks
+    /^!+$/, // just exclamations
+    /^(joke|funny|laugh|lol|haha|hihi)/i, // humor request
+    /^(weather|time|date|temperature|rain)/i, // weather/time
+    /^(music|song|movie|film|game|play|watch)/i, // entertainment
+    /^(recipe|cook|food|eat|drink|restaurant)/i, // cooking/food (unless related to business)
+    /^(travel|trip|hotel|flight|vacation|resort)/i, // travel (unless related to business)
+    /^(news|sports|politics|celebrity|famous)/i, // news/gossip
+    /^(love|relationship|dating|crush|boyfriend|girlfriend)/i, // personal relationships
+    /^(homework|exam|study|test|school|university|grade)/i, // education
+    /^(health|doctor|hospital|medicine|sick|pain)/i, // medical (unless business-related)
+  ];
+
+  const normalizedMessage = (userMessage || "").trim().toLowerCase();
+
+  // Empty message is off-topic
+  if (!normalizedMessage) {
+    return false;
+  }
+
+  // Check if matches strict out-of-topic patterns
+  const isStrictlyOffTopic = outOfTopicPatterns.some((pattern) => pattern.test(normalizedMessage));
+  if (isStrictlyOffTopic) {
+    return false;
+  }
+
+  // If business context exists, allow if any business keyword matches
+  const hasBusinessContext =
+    context.productServices ||
+    context.businessType ||
+    context.productServicePriceRanges ||
+    context.websiteLink ||
+    context.shoppeLink ||
+    context.lazadaLink;
+
+  if (hasBusinessContext) {
+    const hasRelevantKeyword = businessKeywords.some((keyword) =>
+      normalizedMessage.includes(keyword.toLowerCase())
+    );
+
+    // If it has a business keyword, it's on topic
+    if (hasRelevantKeyword) {
+      return true;
+    }
+
+    // If no keyword but has business context, assume it might be related (relaxed mode)
+    // Only reject if it matches strict out-of-topic pattern (already checked above)
+    return true;
+  }
+
+  // No business context, so be more permissive (just avoid strict out-of-topic)
+  return true;
+}
+
+function buildOutOfTopicResponse(context = {}) {
+  const hasBusinessContext =
+    context.productServices ||
+    context.businessType ||
+    context.productServicePriceRanges ||
+    context.websiteLink ||
+    context.shoppeLink ||
+    context.lazadaLink;
+
+  if (!hasBusinessContext) {
+    return "Hi! I can help with questions about products, services, pricing, and bookings. What would you like to know?";
+  }
+
+  const pageName = typeof context.pageName === "string" ? context.pageName.trim() : "";
+  const langTagalog = /\b(ano|saan|may|wala|pa|po|kayo|kami|nyo|niyo|salamat|magkano)\b/i.test(
+    context.lastUserMessage || ""
+  );
+
+  if (langTagalog) {
+    return `${pageName ? `Salamat sa interes sa ${pageName}! ` : ""}Makakapag-tanong ka lang tungkol sa aming mga produkto, serbisyo, presyo, at booking. Paano ka namin matutulungan?`;
+  }
+
+  return `${pageName ? `Thanks for your interest in ${pageName}! ` : ""}I can help with questions about our products, services, pricing, and bookings. What would you like to know?`;
+}
+
 async function sendFacebookMessage(recipientId, text, context = {}) {
   const pageAccessToken =
     (typeof context.pageAccessToken === "string" && context.pageAccessToken.trim()) ||
@@ -995,17 +1102,48 @@ router.post("/", async (req, res) => {
         const memoryPageId = pageConfig.pageId || pageId;
         const history = getConversationHistory(memoryPageId, senderId);
         const requestMessages = [...history, { role: "user", content: incomingText }];
-        const replyText = chatbotEnabled
-          ? await generateChatbotReply(requestMessages, {
-              businessType,
+
+        // Check if message is on-topic for this Facebook page
+        const messageIsOnTopic = isMessageOnTopic(incomingText, {
+          businessType,
+          pageName,
+          productServices,
+          productServicePriceRanges,
+          websiteLink,
+          shoppeLink,
+          lazadaLink,
+          lastUserMessage: incomingText,
+        });
+
+        let replyText;
+        if (!chatbotEnabled) {
+          replyText = "Chatbot not available. Contact the admin.";
+        } else if (!messageIsOnTopic) {
+          // Message is out of topic - return restriction response
+          replyText = compactFacebookReply(
+            buildOutOfTopicResponse({
               pageName,
               productServices,
+              businessType,
               productServicePriceRanges,
               websiteLink,
               shoppeLink,
               lazadaLink,
+              lastUserMessage: incomingText,
             })
-          : "Chatbot not available. Contact the admin.";
+          );
+        } else {
+          // Message is on-topic - generate AI response
+          replyText = await generateChatbotReply(requestMessages, {
+            businessType,
+            pageName,
+            productServices,
+            productServicePriceRanges,
+            websiteLink,
+            shoppeLink,
+            lazadaLink,
+          });
+        }
 
         if (chatbotEnabled) {
           setConversationHistory(memoryPageId, senderId, [
