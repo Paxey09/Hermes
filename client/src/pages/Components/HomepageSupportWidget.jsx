@@ -100,6 +100,7 @@ function HomepageSupportWidget() {
           businessType: 'All-in-one business solution',
           productServices: 'Exponify - unified platform with Inbox (unified messaging), CRM (customer management), ERP (inventory & stock), Analytics (data insights), AI Chatbot (24/7 auto-replies), and Social Ads (campaign optimization).',
           productServicePriceRanges: 'Custom enterprise quotes based on features and scale.',
+          systemInstruction: 'You are Expony, the customer support AI for Exponify. You ONLY answer questions about Exponify and its features, pricing, demos, and services. If a user asks about topics unrelated to Exponify (e.g., math, general trivia, other products, coding, etc.), politely decline and redirect them to ask about Exponify. Example: "I\'m specifically here to help with questions about Exponify. Is there anything you\'d like to know about our platform, features, or services?"',
         }
       );
 
