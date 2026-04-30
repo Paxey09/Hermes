@@ -228,12 +228,17 @@ function HomepageSupportWidget() {
         aria-label="Open support chat"
       >
         <div className="ep-floating-btn-logo" aria-hidden>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#ffd974" />
-            <g fill="#0a0e1a">
-              <path d="M12 7c-1.1 0-2 .9-2 2v.5c0 .3.2.5.5.5h3c.3 0 .5-.2.5-.5V9c0-1.1-.9-2-2-2z" />
-              <path d="M8.5 13c.83 0 1.5-.67 1.5-1.5S9.33 10 8.5 10 7 10.67 7 11.5 7.67 13 8.5 13zM15.5 13c.83 0 1.5-.67 1.5-1.5S16.33 10 15.5 10 14 10.67 14 11.5 14.67 13 15.5 13z" />
-            </g>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <!-- robot head (dark) -->
+            <rect x="6" y="8" width="16" height="10" rx="3.2" fill="#0a0e1a" />
+            <!-- eyes (gold) -->
+            <circle cx="10.5" cy="12" r="1.2" fill="#ffd974" />
+            <circle cx="17.5" cy="12" r="1.2" fill="#ffd974" />
+            <!-- mouth/bar (gold) -->
+            <rect x="11" y="15" width="6" height="1.6" rx="0.8" fill="#ffd974" />
+            <!-- antenna -->
+            <line x1="14" y1="6" x2="14" y2="8" stroke="#0a0e1a" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="14" cy="5" r="1.2" fill="#0a0e1a" />
           </svg>
         </div>
       </button>
