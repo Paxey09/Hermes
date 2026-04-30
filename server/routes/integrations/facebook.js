@@ -582,6 +582,13 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
     parts.push(langTagalog ? `TikTok Shop: ${tiktokLink}` : `TikTok Shop: ${tiktokLink}`);
   }
 
+  // Friendly closing line to invite a short chat (human tone)
+  const closing = langTagalog
+    ? "Kung gusto mo ng tulong, i-message mo lang kami dito at tutulungan ka namin agad." 
+    : "If you'd like help, just send us a quick message here and we'll assist you.";
+
+  parts.push(closing);
+
   return parts.join(" ");
 }
 
@@ -1170,10 +1177,12 @@ router.post("/", async (req, res) => {
             const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
             if (linkToShow) {
               replyText = isTagalog
-                ? `Pwede mong makita ang mga presyo dito: ${linkToShow}`
-                : `You can see the prices here: ${linkToShow}`;
+                ? `Wala pa kaming nakalagay na presyo dito. Pwede mong tingnan ang mga produkto at presyo dito: ${linkToShow}. Kung gusto mo ng tulong, i-message mo lang kami dito sa chat at tutulungan ka namin.`
+                : `We don't have prices listed on the page yet. You can check our products and prices here: ${linkToShow}. If you'd like help, just send us a quick message in this chat and we'll assist you.`;
             } else {
-              replyText = isTagalog ? "Wala pang presyo na available." : "Price not available yet";
+              replyText = isTagalog
+                ? "Wala pang presyo na available ngayon. Kung gusto mo, i-message mo lang kami dito at tutulungan ka namin." 
+                : "Price not available yet. If you want, just send us a quick message here and we'll help you.";
             }
           } else {
           // Message is on-topic - generate AI response
