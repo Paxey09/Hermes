@@ -34,8 +34,8 @@
 }
 
 .ep-floating-btn-logo {
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,13 +121,27 @@
 }
 
 .ep-bot-avatar {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 18px rgba(201,168,76,0.18), 0 2px 6px rgba(0,0,0,0.6);
+}
+
+.ep-robot-icon {
+  display: block;
+}
+
+.ep-robot-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.ep-robot-floating {
+  width: 40px;
+  height: 40px;
 }
 
 .ep-status {

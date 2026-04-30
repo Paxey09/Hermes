@@ -228,17 +228,17 @@ function HomepageSupportWidget() {
         aria-label="Open support chat"
       >
         <div className="ep-floating-btn-logo" aria-hidden>
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+          <svg className="ep-robot-icon ep-robot-floating" width="40" height="40" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
             {/* robot head (dark) */}
             <rect x="6" y="8" width="16" height="10" rx="3.2" fill="#0a0e1a" />
             {/* eyes (gold) */}
-            <circle cx="10.5" cy="12" r="1.2" fill="#ffd974" />
-            <circle cx="17.5" cy="12" r="1.2" fill="#ffd974" />
+            <circle cx="10.5" cy="12" r="1.6" fill="#ffd974" />
+            <circle cx="17.5" cy="12" r="1.6" fill="#ffd974" />
             {/* mouth/bar (gold) */}
-            <rect x="11" y="15" width="6" height="1.6" rx="0.8" fill="#ffd974" />
+            <rect x="11" y="15" width="6" height="1.8" rx="0.8" fill="#ffd974" />
             {/* antenna */}
-            <line x1="14" y1="6" x2="14" y2="8" stroke="#0a0e1a" strokeWidth="1.6" strokeLinecap="round" />
-            <circle cx="14" cy="5" r="1.2" fill="#0a0e1a" />
+            <line x1="14" y1="5" x2="14" y2="7.2" stroke="#0a0e1a" strokeWidth="1.3" strokeLinecap="round" />
+            <circle cx="14" cy="4.2" r="1.2" fill="#0a0e1a" />
           </svg>
         </div>
       </button>
@@ -248,13 +248,16 @@ function HomepageSupportWidget() {
         <div className="ep-floating-widget-header">
           <div className="ep-header-left">
             <div className="ep-bot-avatar" aria-hidden>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="12" fill="#ffd974" />
-                <g transform="translate(4,4)" fill="#0a0e1a">
-                  <rect x="4" y="4" width="8" height="4" rx="2" />
-                  <circle cx="3" cy="6" r="1" />
-                  <circle cx="13" cy="6" r="1" />
-                </g>
+              <svg className="ep-robot-icon ep-robot-avatar" width="44" height="44" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                {/* gold circle background */}
+                <circle cx="14" cy="14" r="14" fill="#ffd974" />
+                {/* robot head (dark) centered */}
+                <rect x="6" y="8" width="16" height="10" rx="3.2" fill="#0a0e1a" />
+                <circle cx="10.5" cy="12" r="1.6" fill="#ffd974" />
+                <circle cx="17.5" cy="12" r="1.6" fill="#ffd974" />
+                <rect x="11" y="15" width="6" height="1.8" rx="0.8" fill="#ffd974" />
+                <line x1="14" y1="5" x2="14" y2="7.2" stroke="#0a0e1a" strokeWidth="1.3" strokeLinecap="round" />
+                <circle cx="14" cy="4.2" r="1.2" fill="#0a0e1a" />
               </svg>
             </div>
             <div>
