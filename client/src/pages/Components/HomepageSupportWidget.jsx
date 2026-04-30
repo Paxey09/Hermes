@@ -229,14 +229,14 @@ function HomepageSupportWidget() {
       >
         <div className="ep-floating-btn-logo" aria-hidden>
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <!-- robot head (dark) -->
+            {/* robot head (dark) */}
             <rect x="6" y="8" width="16" height="10" rx="3.2" fill="#0a0e1a" />
-            <!-- eyes (gold) -->
+            {/* eyes (gold) */}
             <circle cx="10.5" cy="12" r="1.2" fill="#ffd974" />
             <circle cx="17.5" cy="12" r="1.2" fill="#ffd974" />
-            <!-- mouth/bar (gold) -->
+            {/* mouth/bar (gold) */}
             <rect x="11" y="15" width="6" height="1.6" rx="0.8" fill="#ffd974" />
-            <!-- antenna -->
+            {/* antenna */}
             <line x1="14" y1="6" x2="14" y2="8" stroke="#0a0e1a" strokeWidth="1.6" strokeLinecap="round" />
             <circle cx="14" cy="5" r="1.2" fill="#0a0e1a" />
           </svg>
