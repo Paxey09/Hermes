@@ -16,6 +16,7 @@ const fbRuntimeConfig = {
   pageId: "",
   pageName: "",
   pageAccessToken: "",
+  accessMode: "enable",
   businessType: "",
   productServices: "",
   productServicePriceRanges: "",
@@ -413,6 +414,11 @@ async function getFacebookConfig(options = {}) {
     tiktokLink:
       supabaseConfig?.tiktokLink ||
       (!isPageSpecificLookup ? fbRuntimeConfig.tiktokLink || process.env.FB_TIKTOK_LINK || "" : ""),
+    accessMode: normalizeAccessMode(
+      supabaseConfig?.accessMode || (!isPageSpecificLookup ? fbRuntimeConfig.accessMode || process.env.FB_ACCESS_MODE : "")
+    ),
+    verifyToken: !isPageSpecificLookup ? fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "" : "",
+    appSecret: !isPageSpecificLookup ? fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "" : "",
   };
 }
 
@@ -421,6 +427,7 @@ function saveRuntimeConfig(payload = {}) {
   if (normalizedPageId) fbRuntimeConfig.pageId = normalizedPageId;
   if (typeof payload.pageName === "string") fbRuntimeConfig.pageName = normalizeText(payload.pageName);
   if (typeof payload.pageAccessToken === "string") fbRuntimeConfig.pageAccessToken = normalizeText(payload.pageAccessToken);
+  if (typeof payload.accessMode === "string") fbRuntimeConfig.accessMode = normalizeAccessMode(payload.accessMode);
   if (typeof payload.businessType === "string") fbRuntimeConfig.businessType = normalizeText(payload.businessType);
   if (typeof payload.productServices === "string") fbRuntimeConfig.productServices = normalizeText(payload.productServices);
   if (typeof payload.productServicePriceRanges === "string") {
@@ -884,6 +891,7 @@ router.post("/admin/connect", async (req, res) => {
   saveRuntimeConfig({
     pageId,
     pageName,
+    accessMode,
     verifyToken,
     appSecret,
     businessType,
@@ -1151,7 +1159,7 @@ router.post("/", async (req, res) => {
 
         let replyText;
         if (!chatbotEnabled) {
-          replyText = "Chatbot not available. Contact the admin.";
+          replyText = "Wait for ourr agent";
         } else if (!messageIsOnTopic) {
           // Message is out of topic - return restriction response
           replyText = compactFacebookReply(
