@@ -5,6 +5,7 @@ import '../../styles/Admin_styles/Admin_Style.css';
 
 const PRICE_RANGE_OPTIONS = [
   '',
+  'None',
   'Below ₱500',
   '₱500 - ₱1,999',
   '₱2,000 - ₱4,999',
