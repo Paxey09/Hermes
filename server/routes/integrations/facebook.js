@@ -1174,6 +1174,14 @@ router.post("/", async (req, res) => {
           const priceQuery = /\b(price|prices|presyo|magkano|how much|magkano\s+po|magkano\s+ang)\b/i;
           if (priceQuery.test(incomingText || "")) {
             const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
+            // Debug log to help trace why a link may not be returned in production
+            console.info("[FB] priceQuery triggered", {
+              pageId: pageConfig.pageId,
+              senderId,
+              incomingText,
+              linkToShow: linkToShow || null,
+              productServicePriceRanges: productServicePriceRanges || null,
+            });
             const isTagalog = /\b(magkano|presyo)\b/i.test(incomingText || "");
 
             if (linkToShow) {
@@ -1197,32 +1205,33 @@ router.post("/", async (req, res) => {
                 : "Price not available yet. If you want, just send us a quick message here and we'll help you.";
             }
           } else {
-          if (
-            (normalizedIncoming === "none" || normalizedIncoming === "wala") &&
-            (websiteLink || shoppeLink || lazadaLink || tiktokLink || productServicePriceRanges)
-          ) {
-            const isTagalog = /\b(ano|saan|magkano|may|wala|po|kayo|kami)\b/i.test(incomingText || "");
-            const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
-            if (linkToShow) {
-              replyText = isTagalog
-                ? `Wala pa kaming nakalagay na presyo dito. Pwede mong tingnan ang mga produkto at presyo dito: ${linkToShow}. Kung gusto mo ng tulong, i-message mo lang kami dito sa chat at tutulungan ka namin.`
-                : `We don't have prices listed on the page yet. You can check our products and prices here: ${linkToShow}. If you'd like help, just send us a quick message in this chat and we'll assist you.`;
+            if (
+              (normalizedIncoming === "none" || normalizedIncoming === "wala") &&
+              (websiteLink || shoppeLink || lazadaLink || tiktokLink || productServicePriceRanges)
+            ) {
+              const isTagalog = /\b(ano|saan|magkano|may|wala|po|kayo|kami)\b/i.test(incomingText || "");
+              const linkToShow = websiteLink || shoppeLink || lazadaLink || tiktokLink || "";
+              if (linkToShow) {
+                replyText = isTagalog
+                  ? `Wala pa kaming nakalagay na presyo dito. Pwede mong tingnan ang mga produkto at presyo dito: ${linkToShow}. Kung gusto mo ng tulong, i-message mo lang kami dito sa chat at tutulungan ka namin.`
+                  : `We don't have prices listed on the page yet. You can check our products and prices here: ${linkToShow}. If you'd like help, just send us a quick message in this chat and we'll assist you.`;
+              } else {
+                replyText = isTagalog
+                  ? "Wala pang presyo na available ngayon. Kung gusto mo, i-message mo lang kami dito at tutulungan ka namin."
+                  : "Price not available yet. If you want, just send us a quick message here and we'll help you.";
+              }
             } else {
-              replyText = isTagalog
-                ? "Wala pang presyo na available ngayon. Kung gusto mo, i-message mo lang kami dito at tutulungan ka namin." 
-                : "Price not available yet. If you want, just send us a quick message here and we'll help you.";
+              // Message is on-topic - generate AI response
+              replyText = await generateChatbotReply(requestMessages, {
+                businessType,
+                pageName,
+                productServices,
+                productServicePriceRanges,
+                websiteLink,
+                shoppeLink,
+                lazadaLink,
+              });
             }
-          } else {
-          // Message is on-topic - generate AI response
-          replyText = await generateChatbotReply(requestMessages, {
-            businessType,
-            pageName,
-            productServices,
-            productServicePriceRanges,
-            websiteLink,
-            shoppeLink,
-            lazadaLink,
-          });
           }
         }
 
