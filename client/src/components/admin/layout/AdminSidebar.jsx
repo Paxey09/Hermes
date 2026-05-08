@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { ChevronRight, Moon, Sun, X } from "lucide-react";
 import { cn, initials } from "../../../lib/adminUtils";
 import { useTheme } from "../../../context/ThemeContext";
 import { ADMIN_NAV_SECTIONS } from "../../../constants/adminModules";

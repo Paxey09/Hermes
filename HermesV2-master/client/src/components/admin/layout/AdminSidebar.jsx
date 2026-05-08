@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { ChevronRight, Moon, Sun, X } from "lucide-react";
 import {
   LayoutDashboard, Users, TrendingUp, BookOpen, Package,
   Mail, BarChart3, Database, Building2, MessageSquare,
