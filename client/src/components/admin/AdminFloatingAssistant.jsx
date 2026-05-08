@@ -5,8 +5,6 @@ import { aiApi, mainApi, securityApi } from "../../services/api";
 import { ADMIN_MODULES, buildAdminModuleContext } from "../../constants/adminModules";
 
 const ADMIN_CHATBOT_MODEL = import.meta.env.VITE_ADMIN_CHATBOT_MODEL || import.meta.env.VITE_GROQ_MODEL || "llama-3.3-70b-versatile";
-
-const ADMIN_MODULES = [
 function getCurrentModule(pathname) {
   const routePart = pathname.split("/").filter(Boolean)[1];
   return routePart || "Dashboard";
