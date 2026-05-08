@@ -9,6 +9,7 @@ const router = express.Router();
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1';
 const ADMIN_CHATBOT_PROMPT = process.env.ADMIN_CHATBOT || '';
+const ADMIN_CHATBOT_MODEL = process.env.ADMIN_CHATBOT_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 function buildAdminSystemPrompt() {
   const basePrompt = `You are Hermes Admin Sentinel, an AI diagnostics assistant for admins.
@@ -263,7 +264,7 @@ router.post('/groq/admin/diagnostics', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: options.model || 'llama-3.1-70b-versatile',
+        model: options.model || ADMIN_CHATBOT_MODEL,
         messages: [
           { role: 'system', content: buildAdminSystemPrompt() },
           { role: 'user', content: diagnosticPrompt },

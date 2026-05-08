@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Bot, Send, X, AlertTriangle, Sparkles, Activity } from "lucide-react";
 import { aiApi, mainApi, securityApi } from "../../services/api";
 
+const ADMIN_CHATBOT_MODEL = import.meta.env.VITE_ADMIN_CHATBOT_MODEL || import.meta.env.VITE_GROQ_MODEL || "llama-3.3-70b-versatile";
+
 const ADMIN_MODULES = [
   "Dashboard",
   "CRM",
@@ -123,7 +125,7 @@ export default function AdminFloatingAssistant() {
       setLastSnapshot(snapshot);
 
       const response = await aiApi.adminDiagnostics(text, currentModule, snapshot, {
-        model: "llama-3.1-70b-versatile",
+        model: ADMIN_CHATBOT_MODEL,
         temperature: 0.3,
         maxTokens: 1200,
       });
