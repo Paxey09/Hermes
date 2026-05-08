@@ -1,0 +1,35 @@
+services:
+  # Static Site Service for Frontend
+  - type: web
+    name: hermes-frontend
+    env: static
+    buildCommand: cd client && npm run build
+    staticPublishPath: ./client/dist
+    rootDir: .
+    nodeVersion: 18
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /Admin/*
+        destination: /index.html
+      - type: rewrite
+        source: /Client/*
+        destination: /index.html
+      - type: rewrite
+        source: /auth
+        destination: /index.html
+      - type: rewrite
+        source: /login
+        destination: /index.html
+      - type: rewrite
+        source: /signup
+        destination: /index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
