@@ -2,35 +2,11 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Bot, Send, X, AlertTriangle, Sparkles, Activity } from "lucide-react";
 import { aiApi, mainApi, securityApi } from "../../services/api";
+import { ADMIN_MODULES, buildAdminModuleContext } from "../../constants/adminModules";
 
 const ADMIN_CHATBOT_MODEL = import.meta.env.VITE_ADMIN_CHATBOT_MODEL || import.meta.env.VITE_GROQ_MODEL || "llama-3.3-70b-versatile";
 
 const ADMIN_MODULES = [
-  "Dashboard",
-  "CRM",
-  "Deals",
-  "Contacts",
-  "Inventory",
-  "Marketing",
-  "Analytics",
-  "ERP",
-  "Inbox",
-  "Calendar",
-  "Chatbot",
-  "Security",
-  "Settings",
-  "Projects",
-  "Tasks",
-  "Team",
-  "Booking",
-  "Revenue",
-  "KnowledgeBase",
-  "Reports",
-  "AuditLogs",
-  "FacebookConnect",
-  "AccountControl",
-];
-
 function getCurrentModule(pathname) {
   const routePart = pathname.split("/").filter(Boolean)[1];
   return routePart || "Dashboard";
@@ -68,7 +44,7 @@ export default function AdminFloatingAssistant() {
     {
       id: 1,
       role: "assistant",
-      text: "Admin Sentinel online. I can scan all admin modules and detect bugs, mismatches, and risky system states.",
+      text: "Admin Sentinel online. I know the admin side panel modules and can explain what each one does, then scan them for bugs, mismatches, and security risks.",
     },
   ]);
 
@@ -101,6 +77,8 @@ export default function AdminFloatingAssistant() {
     return {
       currentModule,
       route: location.pathname,
+      moduleCatalog: ADMIN_MODULES,
+      moduleMap: buildAdminModuleContext(),
       healthChecks,
       moduleStats: {
         totalModules: ADMIN_MODULES.length,
@@ -242,6 +220,13 @@ export default function AdminFloatingAssistant() {
               <AlertTriangle className="h-3.5 w-3.5" />
               Analyze Module
             </button>
+          </div>
+
+          <div className="border-b border-slate-800 px-3 py-2 text-xs text-slate-300">
+            <p className="font-medium text-slate-100">Known admin modules</p>
+            <p className="mt-1 text-slate-400">
+              {ADMIN_MODULES.map((module) => module.label).join(" • ")}
+            </p>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
