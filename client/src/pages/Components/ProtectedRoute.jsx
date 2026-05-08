@@ -11,10 +11,19 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         checkAuth()
     }, [])
 
+    const withTimeout = (promise, timeoutMs = 4000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Auth check timed out")), timeoutMs)
+        }),
+      ])
+    }
+
     const checkAuth = async () => {
         try {
             // Check if user is authenticated
-            const { data: { session } } = await supabase.auth.getSession()
+            const { data: { session } } = await withTimeout(supabase.auth.getSession())
 
             if (!session) {
                 setLoading(false)
@@ -23,11 +32,14 @@ const ProtectedRoute = ({ children, requiredRole }) => {
             setUser(session.user)
 
             // Get user role from public.profiles table
-            const { data: userData } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
+            const { data: userData } = await withTimeout(
+              supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single(),
+              4000
+            )
             setUserRole(userData?.role || null)
         } catch (error) {
             console.error('Auth check error:', error)
