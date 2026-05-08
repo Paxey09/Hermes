@@ -103,6 +103,22 @@ export const aiApi = {
       body: { customerData },
     });
   },
+
+  async adminSystemScan() {
+    return apiRequest('/ai/groq/admin/system-scan');
+  },
+
+  async adminDiagnostics(message, moduleName, snapshot = {}, options = {}) {
+    return apiRequest('/ai/groq/admin/diagnostics', {
+      method: 'POST',
+      body: {
+        message,
+        module: moduleName,
+        snapshot,
+        options,
+      },
+    });
+  },
 };
 
 export const securityApi = {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AdminHeader from "./AdminHeader";
+import AdminFloatingAssistant from "../AdminFloatingAssistant";
 import { supabase } from "../../../config/supabaseClient";
 import { useTheme } from "../../../context/ThemeContext";
 
@@ -62,6 +63,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <AdminFloatingAssistant />
     </div>
   );
 }
