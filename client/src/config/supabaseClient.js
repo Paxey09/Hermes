@@ -26,6 +26,8 @@ const noopQuery = {
 };
 
 const noopAuth = {
+  getSession: async () => ({ data: { session: null }, error: null }),
+  getUser: async () => ({ data: { user: null }, error: null }),
   signInWithPassword: async () => ({ data: null, error: MISSING_SUPABASE_ERROR }),
   signUp: async () => ({ data: null, error: MISSING_SUPABASE_ERROR }),
   signOut: async () => ({ data: null, error: MISSING_SUPABASE_ERROR }),

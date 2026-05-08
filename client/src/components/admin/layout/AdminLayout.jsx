@@ -55,15 +55,19 @@ export default function AdminLayout() {
   useEffect(() => {
     // Get current user from Supabase
     const getUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        // Get profile data
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .single();
-        setUser(profile || authUser);
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          // Get profile data
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", authUser.id)
+            .single();
+          setUser(profile || authUser);
+        }
+      } catch (error) {
+        console.error("Admin layout user bootstrap failed:", error);
       }
     };
     getUser();
