@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Component, useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AdminHeader from "./AdminHeader";
@@ -22,6 +22,29 @@ const TITLES = {
   "/Admin/Security": "Security",
   "/Admin/Settings": "Settings",
 };
+
+class AdminAssistantBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error("Admin assistant failed to render:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,7 +86,9 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
-      <AdminFloatingAssistant />
+      <AdminAssistantBoundary>
+        <AdminFloatingAssistant />
+      </AdminAssistantBoundary>
     </div>
   );
 }
