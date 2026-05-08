@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Bot, Send, X, AlertTriangle, Sparkles, Activity } from "lucide-react";
 import { aiApi, mainApi, securityApi } from "../../services/api";
-import { ADMIN_MODULES, buildAdminModuleContext } from "../../constants/adminModules";
+import { ADMIN_MODULES, buildAdminModuleContext, getAdminModuleByRoute } from "../../constants/adminModules";
 
 const ADMIN_CHATBOT_MODEL = import.meta.env.VITE_ADMIN_CHATBOT_MODEL || import.meta.env.VITE_GROQ_MODEL || "llama-3.3-70b-versatile";
 function getCurrentModule(pathname) {
@@ -59,22 +59,26 @@ export default function AdminFloatingAssistant() {
       mainApi.health(),
       aiApi.groqHealth(),
       securityApi.nucleiHealth(),
+      securityApi.trivyHealth(),
       aiApi.adminSystemScan(),
     ]);
 
     const healthChecks = [
       normalizeCheck("api", checks[0]),
       normalizeCheck("groq", checks[1]),
-      normalizeCheck("security", checks[2]),
+      normalizeCheck("security-nuclei", checks[2]),
+      normalizeCheck("security-trivy", checks[3]),
     ];
 
-    const serverScan = checks[3].status === "fulfilled" ? checks[3].value : { error: "System scan unavailable" };
+    const serverScan = checks[4].status === "fulfilled" ? checks[4].value : { error: "System scan unavailable" };
 
     const unavailableModules = healthChecks.some((check) => check.status !== "healthy") ? 1 : 0;
+    const currentModuleMeta = getAdminModuleByRoute(location.pathname) || null;
 
     return {
       currentModule,
       route: location.pathname,
+      currentModuleMeta,
       moduleCatalog: ADMIN_MODULES,
       moduleMap: buildAdminModuleContext(),
       healthChecks,

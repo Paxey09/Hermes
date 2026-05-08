@@ -11,6 +11,20 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1';
 const ADMIN_CHATBOT_PROMPT = process.env.ADMIN_CHATBOT || '';
 const ADMIN_CHATBOT_MODEL = process.env.ADMIN_CHATBOT_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
+const ADMIN_API_CATALOG = [
+  { name: 'Main API', basePath: '/api', notes: 'Root health and general routes.' },
+  { name: 'AI', basePath: '/api/ai', notes: 'Groq health + admin diagnostics.' },
+  { name: 'Security', basePath: '/api/security', notes: 'Nuclei/Trivy scan services.' },
+  { name: 'Bookings', basePath: '/api/zoom', notes: 'Booking and Zoom scheduling.' },
+  { name: 'Revenue', basePath: '/api/revenue', notes: 'Revenue analytics and summaries.' },
+  { name: 'Analytics', basePath: '/api/analytics', notes: 'Business analytics data.' },
+  { name: 'Knowledge Base', basePath: '/api/knowledge-base', notes: 'KB articles and feedback.' },
+  { name: 'Reports', basePath: '/api/reports', notes: 'Admin reporting endpoints.' },
+  { name: 'Audit Logs', basePath: '/api/audit-logs', notes: 'Admin audit history.' },
+  { name: 'OpenClaude', basePath: '/api/openclaude', notes: 'Legacy OpenClaude service.' },
+  { name: 'Facebook Webhooks', basePath: '/api/webhooks/facebook', notes: 'Facebook integrations.' },
+];
+
 function buildAdminSystemPrompt() {
   const basePrompt = `You are Hermes Admin Sentinel, an AI diagnostics assistant for admins.
 
@@ -19,6 +33,7 @@ Primary goals:
 - Prioritize findings by severity: critical, high, medium, low.
 - Provide actionable next steps with specific module/service names.
 - Be concise and practical.
+- Use the module catalog, API catalog, and Supabase status to explain missing or misconfigured modules.
 
 Output format:
 1) Summary (2-4 lines)
@@ -43,6 +58,92 @@ function normalizeHealth(input) {
     status: String(input.status || 'unknown').toLowerCase(),
     detail: input.detail ? String(input.detail) : '',
   };
+}
+
+function maskSupabaseUrl(rawUrl = '') {
+  if (!rawUrl) return '';
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.origin;
+  } catch {
+    return '';
+  }
+}
+
+function detectSupabaseKeyType(key = '') {
+  if (!key) return 'missing';
+  if (key.startsWith('sb_secret_')) return 'service_role';
+  if (key.startsWith('sb_publishable_')) return 'anon';
+  if (key.startsWith('eyJ')) return 'jwt';
+  return 'unknown';
+}
+
+async function getSupabaseStatus() {
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  const configured = Boolean(supabaseUrl && supabaseKey);
+
+  if (!configured) {
+    return {
+      status: 'unconfigured',
+      configured,
+      url: maskSupabaseUrl(supabaseUrl),
+      keyType: detectSupabaseKeyType(supabaseKey),
+      message: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_ANON_KEY.',
+    };
+  }
+
+  let client;
+  try {
+    const { supabase } = require('../../config/supabase');
+    client = supabase;
+  } catch (error) {
+    return {
+      status: 'error',
+      configured,
+      url: maskSupabaseUrl(supabaseUrl),
+      keyType: detectSupabaseKeyType(supabaseKey),
+      message: error.message || 'Failed to initialize Supabase client.',
+    };
+  }
+
+  const started = Date.now();
+  try {
+    const { error } = await client
+      .from('audit_logs')
+      .select('id', { head: true, count: 'exact' });
+
+    if (error) {
+      return {
+        status: 'error',
+        configured,
+        url: maskSupabaseUrl(supabaseUrl),
+        keyType: detectSupabaseKeyType(supabaseKey),
+        message: error.message || 'Supabase query failed.',
+        testedTable: 'audit_logs',
+        latencyMs: Date.now() - started,
+      };
+    }
+
+    return {
+      status: 'healthy',
+      configured,
+      url: maskSupabaseUrl(supabaseUrl),
+      keyType: detectSupabaseKeyType(supabaseKey),
+      testedTable: 'audit_logs',
+      latencyMs: Date.now() - started,
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      configured,
+      url: maskSupabaseUrl(supabaseUrl),
+      keyType: detectSupabaseKeyType(supabaseKey),
+      message: error.message || 'Supabase connection failed.',
+      testedTable: 'audit_logs',
+      latencyMs: Date.now() - started,
+    };
+  }
 }
 
 function deriveFindings(snapshot = {}) {
@@ -81,6 +182,16 @@ function deriveFindings(snapshot = {}) {
         detail: 'One or more modules failed local checks or route checks.',
       });
     }
+  }
+
+  const supabaseStatus = snapshot?.serverScan?.supabase;
+  if (supabaseStatus && supabaseStatus.status && supabaseStatus.status !== 'healthy') {
+    const severity = supabaseStatus.status === 'unconfigured' ? 'high' : 'medium';
+    findings.push({
+      severity,
+      title: `Supabase status is ${supabaseStatus.status}`,
+      detail: supabaseStatus.message || 'Supabase did not report a healthy state.',
+    });
   }
 
   if (findings.length === 0) {
@@ -223,20 +334,46 @@ Provide JSON with: sentiment (string), actions (array), risk (string), opportuni
 router.get('/groq/admin/system-scan', (req, res) => {
   const memory = process.memoryUsage();
 
-  res.json({
-    server: {
-      nodeEnv: process.env.NODE_ENV || 'development',
-      uptimeSeconds: Math.floor(process.uptime()),
-      rssMB: Math.round(memory.rss / (1024 * 1024)),
-      heapUsedMB: Math.round(memory.heapUsed / (1024 * 1024)),
-      heapTotalMB: Math.round(memory.heapTotal / (1024 * 1024)),
-    },
-    integrations: {
-      groqConfigured: Boolean(GROQ_API_KEY),
-      adminPromptConfigured: Boolean(ADMIN_CHATBOT_PROMPT.trim()),
-    },
-    timestamp: new Date().toISOString(),
-  });
+  Promise.resolve(getSupabaseStatus())
+    .then((supabaseStatus) => {
+      res.json({
+        server: {
+          nodeEnv: process.env.NODE_ENV || 'development',
+          uptimeSeconds: Math.floor(process.uptime()),
+          rssMB: Math.round(memory.rss / (1024 * 1024)),
+          heapUsedMB: Math.round(memory.heapUsed / (1024 * 1024)),
+          heapTotalMB: Math.round(memory.heapTotal / (1024 * 1024)),
+        },
+        integrations: {
+          groqConfigured: Boolean(GROQ_API_KEY),
+          adminPromptConfigured: Boolean(ADMIN_CHATBOT_PROMPT.trim()),
+        },
+        apiCatalog: ADMIN_API_CATALOG,
+        supabase: supabaseStatus,
+        timestamp: new Date().toISOString(),
+      });
+    })
+    .catch((error) => {
+      res.json({
+        server: {
+          nodeEnv: process.env.NODE_ENV || 'development',
+          uptimeSeconds: Math.floor(process.uptime()),
+          rssMB: Math.round(memory.rss / (1024 * 1024)),
+          heapUsedMB: Math.round(memory.heapUsed / (1024 * 1024)),
+          heapTotalMB: Math.round(memory.heapTotal / (1024 * 1024)),
+        },
+        integrations: {
+          groqConfigured: Boolean(GROQ_API_KEY),
+          adminPromptConfigured: Boolean(ADMIN_CHATBOT_PROMPT.trim()),
+        },
+        apiCatalog: ADMIN_API_CATALOG,
+        supabase: {
+          status: 'error',
+          message: error?.message || 'Failed to build Supabase status.',
+        },
+        timestamp: new Date().toISOString(),
+      });
+    });
 });
 
 // Admin diagnostics chat for bug/mismatch analysis

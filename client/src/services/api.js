@@ -134,6 +134,10 @@ export const securityApi = {
     return apiRequest('/security/nuclei/health');
   },
 
+  async trivyHealth() {
+    return apiRequest('/security/trivy/health');
+  },
+
   // Trivy Code Security
   async trivyImageScan(image, options = {}) {
     return apiRequest('/security/trivy/image', {
