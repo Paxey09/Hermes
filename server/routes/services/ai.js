@@ -219,7 +219,7 @@ Provide JSON with: sentiment (string), actions (array), risk (string), opportuni
 });
 
 // Quick system scan data for admin assistant
-router.get('/admin/system-scan', (req, res) => {
+router.get('/groq/admin/system-scan', (req, res) => {
   const memory = process.memoryUsage();
 
   res.json({
@@ -239,7 +239,7 @@ router.get('/admin/system-scan', (req, res) => {
 });
 
 // Admin diagnostics chat for bug/mismatch analysis
-router.post('/admin/diagnostics', async (req, res) => {
+router.post('/groq/admin/diagnostics', async (req, res) => {
   if (!GROQ_API_KEY) {
     return res.status(503).json({ error: 'Groq API not configured' });
   }
