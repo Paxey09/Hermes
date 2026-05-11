@@ -423,6 +423,7 @@ function saveRuntimeConfig(payload = {}) {
 
 function getPublicBaseUrl(req) {
   const configured =
+    process.env.BASE_URL ||
     process.env.PUBLIC_BASE_URL ||
     process.env.RENDER_EXTERNAL_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
@@ -432,6 +433,25 @@ function getPublicBaseUrl(req) {
   }
 
   return `${req.protocol}://${req.get("host")}`;
+}
+
+function getFacebookWebhookUrl(req) {
+  const configuredWebhookUrl = normalizeText(process.env.FACEBOOK_WEBHOOKS);
+
+  if (configuredWebhookUrl) {
+    try {
+      const parsed = new URL(configuredWebhookUrl);
+      const pathname = normalizeText(parsed.pathname);
+      if (!pathname || pathname === "/") {
+        parsed.pathname = "/api/webhooks/facebook";
+      }
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      return configuredWebhookUrl.replace(/\/$/, "");
+    }
+  }
+
+  return `${getPublicBaseUrl(req)}/api/webhooks/facebook`;
 }
 
 async function verifyFacebookSignature(req) {
@@ -742,7 +762,6 @@ router.get("/", async (req, res) => {
 router.get("/admin/status", async (req, res) => {
   const config = await getFacebookConfig();
   const connectedPages = await getSupabaseFacebookPages();
-  const baseUrl = getPublicBaseUrl(req);
 
   res.status(200).json({
     connected: Boolean(connectedPages.length > 0 && config.verifyToken),
@@ -760,7 +779,7 @@ router.get("/admin/status", async (req, res) => {
     accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}********` : null,
-    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    webhookUrl: getFacebookWebhookUrl(req),
     connectedPages: connectedPages.map((page) => ({
       ...page,
       pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}********` : null,
@@ -826,7 +845,6 @@ router.post("/admin/connect", async (req, res) => {
 
   const config = await getFacebookConfig();
   const connectedPages = await getSupabaseFacebookPages();
-  const baseUrl = getPublicBaseUrl(req);
 
   return res.status(200).json({
     success: true,
@@ -845,7 +863,7 @@ router.post("/admin/connect", async (req, res) => {
     accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}********` : null,
-    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    webhookUrl: getFacebookWebhookUrl(req),
     connectedPages: connectedPages.map((page) => ({
       ...page,
       pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}********` : null,
@@ -868,7 +886,6 @@ router.post("/admin/access-mode", async (req, res) => {
 
   const config = await getFacebookConfig();
   const connectedPages = await getSupabaseFacebookPages();
-  const baseUrl = getPublicBaseUrl(req);
 
   return res.status(200).json({
     success: true,
@@ -882,7 +899,7 @@ router.post("/admin/access-mode", async (req, res) => {
     accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}********` : null,
-    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    webhookUrl: getFacebookWebhookUrl(req),
     connectedPages: connectedPages.map((page) => ({
       ...page,
       pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}********` : null,
@@ -933,7 +950,6 @@ router.post("/admin/page-details", async (req, res) => {
 
   const config = await getFacebookConfig();
   const connectedPages = await getSupabaseFacebookPages();
-  const baseUrl = getPublicBaseUrl(req);
 
   return res.status(200).json({
     success: true,
@@ -952,7 +968,7 @@ router.post("/admin/page-details", async (req, res) => {
     accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}********` : null,
-    webhookUrl: `${baseUrl}/api/webhooks/facebook`,
+    webhookUrl: getFacebookWebhookUrl(req),
     connectedPages: connectedPages.map((page) => ({
       ...page,
       pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}********` : null,

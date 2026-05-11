@@ -367,7 +367,9 @@ function saveConfig(payload = {}) {
 
 function getBaseUrl(req) {
   const configured =
+    process.env.BASE_URL ||
     process.env.PUBLIC_BASE_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 
   if (configured) {
@@ -377,6 +379,25 @@ function getBaseUrl(req) {
   const host = req.headers.host || "localhost:3000";
   const proto = req.headers["x-forwarded-proto"] || "https";
   return `${proto}://${host}`;
+}
+
+function getFacebookWebhookUrl(req) {
+  const configuredWebhookUrl = normalizeText(process.env.FACEBOOK_WEBHOOKS);
+
+  if (configuredWebhookUrl) {
+    try {
+      const parsed = new URL(configuredWebhookUrl);
+      const pathname = normalizeText(parsed.pathname);
+      if (!pathname || pathname === "/") {
+        parsed.pathname = "/api/webhooks/facebook";
+      }
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      return configuredWebhookUrl.replace(/\/$/, "");
+    }
+  }
+
+  return `${getBaseUrl(req)}/api/webhooks/facebook`;
 }
 
 async function buildStatus(req) {
@@ -399,7 +420,7 @@ async function buildStatus(req) {
     accessMode: config.accessMode,
     verifyToken: config.verifyToken || null,
     pageAccessTokenMasked: config.pageAccessToken ? `${config.pageAccessToken.slice(0, 4)}********` : null,
-    webhookUrl: `${getBaseUrl(req)}/api/webhooks/facebook`,
+    webhookUrl: getFacebookWebhookUrl(req),
     connectedPages: connectedPages.map((page) => ({
       ...page,
       pageAccessTokenMasked: page.pageAccessToken ? `${page.pageAccessToken.slice(0, 4)}********` : null,
