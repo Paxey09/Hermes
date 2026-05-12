@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import facebookIntegrationService from "../../services/facebookIntegration";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from "../../components/admin/ui";
+import { db } from "../../config/supabaseClient";
 
 const PRICE_RANGE_OPTIONS = [
   { value: "", label: "Select price range" },
@@ -22,6 +23,7 @@ const EMPTY_FORM = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
+  connectedProfileName: "",
   generatedToken: "",
 };
 
@@ -34,6 +36,7 @@ const EMPTY_EDIT_FORM = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
+  connectedProfileName: "",
 };
 
 export default function Admin_FacebookConnect() {
@@ -47,11 +50,31 @@ export default function Admin_FacebookConnect() {
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [profiles, setProfiles] = useState([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
 
   const connectedPages = useMemo(
     () => (Array.isArray(status?.connectedPages) ? status.connectedPages : []),
     [status]
   );
+
+  const profileOptions = useMemo(() => {
+    const options = [{ value: "", label: loadingProfiles ? "Loading profiles..." : "Not linked" }];
+    const entries = Array.isArray(profiles) ? profiles : [];
+    const filtered = entries
+      .filter((profile) => profile?.full_name)
+      .filter((profile) => !profile?.role || profile.role === "Client")
+      .sort((a, b) => String(a.full_name).localeCompare(String(b.full_name)));
+
+    filtered.forEach((profile) => {
+      options.push({
+        value: String(profile.full_name),
+        label: profile.full_name,
+      });
+    });
+
+    return options;
+  }, [profiles, loadingProfiles]);
 
   const loadStatus = async () => {
     try {
@@ -70,6 +93,7 @@ export default function Admin_FacebookConnect() {
         shoppeLink: data.shoppeLink || current.shoppeLink,
         lazadaLink: data.lazadaLink || current.lazadaLink,
         knowledge: data.knowledge || current.knowledge,
+        connectedProfileName: data.connectedProfileName || current.connectedProfileName,
       }));
     } catch (loadError) {
       setError(loadError.message || "Failed to load Facebook integration status.");
@@ -80,6 +104,39 @@ export default function Admin_FacebookConnect() {
 
   useEffect(() => {
     loadStatus();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProfiles() {
+      try {
+        setLoadingProfiles(true);
+        const { data, error: profileError } = await db.getAllProfiles();
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (mounted) {
+          setProfiles(Array.isArray(data) ? data : []);
+        }
+      } catch (profileLoadError) {
+        if (mounted) {
+          setProfiles([]);
+          setError(profileLoadError.message || "Failed to load profiles.");
+        }
+      } finally {
+        if (mounted) {
+          setLoadingProfiles(false);
+        }
+      }
+    }
+
+    loadProfiles();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const onChange = (event) => {
@@ -176,6 +233,7 @@ export default function Admin_FacebookConnect() {
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || "enable",
         knowledge: form.knowledge,
+        connectedProfileName: form.connectedProfileName,
       });
       setStatus(data);
       setSuccess("Facebook Page connection saved successfully.");
@@ -251,6 +309,7 @@ export default function Admin_FacebookConnect() {
       shoppeLink: page?.shoppeLink || "",
       lazadaLink: page?.lazadaLink || "",
       knowledge: page?.knowledge || "",
+      connectedProfileName: page?.connectedProfileName || "",
     });
     setError("");
     setSuccess("");
@@ -282,6 +341,7 @@ export default function Admin_FacebookConnect() {
         shoppeLink: editForm.shoppeLink,
         lazadaLink: editForm.lazadaLink,
         knowledge: editForm.knowledge,
+        connectedProfileName: editForm.connectedProfileName,
       });
 
       setStatus(data);
@@ -412,6 +472,10 @@ export default function Admin_FacebookConnect() {
                     <span className="text-sm text-gray-800">{displayValue(page.lazadaLink)}</span>
                   </div>
                   <div>
+                    <span className="block text-[11px] uppercase text-gray-400">Connected Profile</span>
+                    <span className="text-sm text-gray-800">{displayValue(page.connectedProfileName)}</span>
+                  </div>
+                  <div>
                     <span className="block text-[11px] uppercase text-gray-400">Webhook Subscription</span>
                     <span className="text-sm text-gray-800">{status?.subscription || "messages and messaging_postbacks"}</span>
                   </div>
@@ -479,6 +543,13 @@ export default function Admin_FacebookConnect() {
                         value={editForm.lazadaLink}
                         onChange={onEditChange}
                         placeholder="https://www.lazada.com.ph/shop/your-shop"
+                      />
+                      <Select
+                        label="Connect to Profile"
+                        name="connectedProfileName"
+                        value={editForm.connectedProfileName}
+                        onChange={onEditChange}
+                        options={profileOptions}
                       />
                       <div className="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
                         <div className="mb-3 flex items-center justify-between">
@@ -604,6 +675,13 @@ export default function Admin_FacebookConnect() {
                 value={form.lazadaLink}
                 onChange={onChange}
                 placeholder="https://www.lazada.com.ph/shop/your-shop"
+              />
+              <Select
+                label="Connect to Profile"
+                name="connectedProfileName"
+                value={form.connectedProfileName}
+                onChange={onChange}
+                options={profileOptions}
               />
               <Input
                 label="Generated Token"

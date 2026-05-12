@@ -23,6 +23,7 @@ const fbRuntimeConfig = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
+  connectedProfileName: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -119,6 +120,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.knowledge === "string" && record.knowledge.trim()) ||
     (typeof record.knowledge_text === "string" && record.knowledge_text.trim()) ||
     "";
+  const connectedProfileName =
+    (typeof record.connected_profile_name === "string" && record.connected_profile_name.trim()) ||
+    (typeof record.connectedProfileName === "string" && record.connectedProfileName.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -133,6 +138,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     shoppeLink,
     lazadaLink,
     knowledge,
+    connectedProfileName,
     accessMode,
   };
 }
@@ -209,6 +215,30 @@ async function getSupabaseFacebookPages() {
   return Array.isArray(data) ? data.map(getNormalizedSupabaseRecord) : [];
 }
 
+async function getSupabaseFacebookPagesByProfileName(profileName) {
+  if (!supabaseClient) {
+    return [];
+  }
+
+  const normalizedName = normalizeText(profileName);
+  if (!normalizedName) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from("fb_pages")
+    .select("*")
+    .eq("connected_profile_name", normalizedName)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to read fb_pages by connected_profile_name", { message: error.message });
+    return [];
+  }
+
+  return Array.isArray(data) ? data.map(getNormalizedSupabaseRecord) : [];
+}
+
 async function saveSupabasePageToken(payload = {}) {
   if (!supabaseClient) {
     throw new Error("Supabase credentials are missing on server.");
@@ -227,6 +257,7 @@ async function saveSupabasePageToken(payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
+    connected_profile_name: normalizeText(payload.connectedProfileName),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -309,6 +340,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
+    connected_profile_name: normalizeText(payload.connectedProfileName),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
@@ -366,6 +398,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
     lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
     knowledge: normalizeText(payload.knowledge) || current.knowledge,
+    connectedProfileName: normalizeText(payload.connectedProfileName) || current.connectedProfileName,
     accessMode: current.accessMode,
   });
 
@@ -410,6 +443,9 @@ async function getFacebookConfig(options = {}) {
     knowledge:
       supabaseConfig?.knowledge ||
       (!isPageSpecificLookup ? fbRuntimeConfig.knowledge || process.env.FB_KNOWLEDGE || "" : ""),
+    connectedProfileName:
+      supabaseConfig?.connectedProfileName ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.connectedProfileName || "" : ""),
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -430,6 +466,9 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
   if (typeof payload.knowledge === "string") fbRuntimeConfig.knowledge = normalizeText(payload.knowledge);
+  if (typeof payload.connectedProfileName === "string") {
+    fbRuntimeConfig.connectedProfileName = normalizeText(payload.connectedProfileName);
+  }
   if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = normalizeText(payload.verifyToken);
   if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = normalizeText(payload.appSecret);
 }
@@ -803,6 +842,7 @@ router.get("/admin/status", async (req, res) => {
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
     knowledge: config.knowledge || null,
+    connectedProfileName: config.connectedProfileName || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -834,6 +874,7 @@ router.post("/admin/connect", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
+    connectedProfileName,
   } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
@@ -854,6 +895,7 @@ router.post("/admin/connect", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
+    connectedProfileName,
   });
 
   try {
@@ -869,6 +911,7 @@ router.post("/admin/connect", async (req, res) => {
       shoppeLink,
       lazadaLink,
       knowledge,
+      connectedProfileName,
     });
   } catch (error) {
     return res.status(500).json({
@@ -890,6 +933,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    connectedProfileName: config.connectedProfileName || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -953,6 +997,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
+    connectedProfileName,
   } = req.body || {};
 
   try {
@@ -965,6 +1010,7 @@ router.post("/admin/page-details", async (req, res) => {
       shoppeLink,
       lazadaLink,
       knowledge,
+      connectedProfileName,
     });
   } catch (error) {
     return res.status(400).json({
@@ -982,6 +1028,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
+    connectedProfileName,
   });
 
   const config = await getFacebookConfig();
@@ -999,6 +1046,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
     knowledge: config.knowledge || null,
+    connectedProfileName: config.connectedProfileName || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -1012,6 +1060,22 @@ router.post("/admin/page-details", async (req, res) => {
     })),
     connectedCount: connectedPages.length,
     note: "Page details updated successfully.",
+  });
+});
+
+router.get("/client/pages", async (req, res) => {
+  const profileName = normalizeText(req.query.profileName);
+
+  if (!profileName) {
+    return res.status(400).json({ error: "profileName is required" });
+  }
+
+  const pages = await getSupabaseFacebookPagesByProfileName(profileName);
+
+  return res.status(200).json({
+    profileName,
+    pages,
+    count: pages.length,
   });
 });
 

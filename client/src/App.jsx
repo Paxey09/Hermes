@@ -58,6 +58,7 @@ import ClientDemoBookings from "./pages/Client/Modules/Client_DemoBookings.jsx";
 import ClientCRM from "./pages/Client/Modules/ClientCRM.jsx";
 import ClientContacts from "./pages/Client/Modules/ClientContacts.jsx";
 import ClientDeals from "./pages/Client/Modules/ClientDeals.jsx";
+import ClientFacebookInbox from "./pages/Client/Modules/Client_FacebookInbox.jsx";
 
 // Client placeholder components (not yet implemented on client side)
 const PlaceholderPage = ({ title }) => (
@@ -245,6 +246,15 @@ function App() {
           element={
             <GuardedClientModule moduleKey="inbox">
               <ClientInbox />
+            </GuardedClientModule>
+          }
+        />
+
+        <Route
+          path="Inbox/Facebook"
+          element={
+            <GuardedClientModule moduleKey="facebook_inbox">
+              <ClientFacebookInbox />
             </GuardedClientModule>
           }
         />

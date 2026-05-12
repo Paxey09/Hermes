@@ -56,6 +56,7 @@ class FacebookIntegrationService {
       shoppeLink: payload.shoppeLink || cached.shoppeLink || "",
       lazadaLink: payload.lazadaLink || cached.lazadaLink || "",
       knowledge: payload.knowledge || cached.knowledge || "",
+      connectedProfileName: payload.connectedProfileName || cached.connectedProfileName || "",
       accessMode: payload.accessMode || cached.accessMode || "enable",
       hasPageAccessToken: true,
       hasVerifyToken: true,
@@ -78,6 +79,7 @@ class FacebookIntegrationService {
               shoppeLink: payload.shoppeLink || cached.shoppeLink || "",
               lazadaLink: payload.lazadaLink || cached.lazadaLink || "",
               knowledge: payload.knowledge || cached.knowledge || "",
+              connectedProfileName: payload.connectedProfileName || cached.connectedProfileName || "",
               accessMode: payload.accessMode || cached.accessMode || "enable",
               pageAccessTokenMasked: payload.pageAccessToken
                 ? `${String(payload.pageAccessToken).slice(0, 4)}********`
@@ -140,6 +142,7 @@ class FacebookIntegrationService {
           shoppeLink: "",
           lazadaLink: "",
           knowledge: "",
+          connectedProfileName: "",
           accessMode: "enable",
           hasPageAccessToken: false,
           hasVerifyToken: false,
@@ -244,6 +247,31 @@ class FacebookIntegrationService {
       } catch (fallbackError) {
         const primaryMessage = primaryError?.message || "Primary page details endpoint failed.";
         const fallbackMessage = fallbackError?.message || "Fallback page details endpoint failed.";
+        throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
+      }
+    }
+  }
+
+  async getClientPagesByProfileName(profileName) {
+    const normalized = typeof profileName === "string" ? profileName.trim() : "";
+    if (!normalized) {
+      return { profileName: "", pages: [], count: 0 };
+    }
+
+    try {
+      return await this.request(
+        `/webhooks/facebook/client/pages?profileName=${encodeURIComponent(normalized)}`,
+        { method: "GET" }
+      );
+    } catch (primaryError) {
+      try {
+        return await this.request("/integrations/facebook", {
+          method: "POST",
+          body: JSON.stringify({ action: "clientPages", profileName: normalized }),
+        });
+      } catch (fallbackError) {
+        const primaryMessage = primaryError?.message || "Primary client pages endpoint failed.";
+        const fallbackMessage = fallbackError?.message || "Fallback client pages endpoint failed.";
         throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
       }
     }

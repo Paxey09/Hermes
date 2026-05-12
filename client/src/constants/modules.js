@@ -100,6 +100,15 @@ export const WORKSPACE_CLIENT_MODULES = [
     description: "View workspace communication and conversations.",
   },
   {
+    key: "facebook_inbox",
+    label: "Facebook Inbox",
+    route: "/Client/Inbox/Facebook",
+    clientRoute: "InboxFacebook",
+    icon: MessageCircle,
+    section: "Work",
+    description: "View Facebook inbox conversations tied to your profile.",
+  },
+  {
     key: "booking",
     label: "Booking",
     route: "/Client/Booking",
