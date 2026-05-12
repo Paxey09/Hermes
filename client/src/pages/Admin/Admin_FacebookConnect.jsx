@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
+  knowledge: "",
   generatedToken: "",
 };
 
@@ -32,6 +33,7 @@ const EMPTY_EDIT_FORM = {
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
+  knowledge: "",
 };
 
 export default function Admin_FacebookConnect() {
@@ -67,6 +69,7 @@ export default function Admin_FacebookConnect() {
         websiteLink: data.websiteLink || current.websiteLink,
         shoppeLink: data.shoppeLink || current.shoppeLink,
         lazadaLink: data.lazadaLink || current.lazadaLink,
+        knowledge: data.knowledge || current.knowledge,
       }));
     } catch (loadError) {
       setError(loadError.message || "Failed to load Facebook integration status.");
@@ -87,6 +90,64 @@ export default function Admin_FacebookConnect() {
   const onEditChange = (event) => {
     const { name, value } = event.target;
     setEditForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const summarizeText = (value, limit = 140) => {
+    if (!value) return "Not set";
+    const text = String(value).trim();
+    if (!text) return "Not set";
+    if (text.length <= limit) return text;
+    return `${text.slice(0, limit).trim()}...`;
+  };
+
+  const parseTextFile = async (file) => {
+    if (!file) return "";
+    const content = await file.text();
+    return typeof content === "string" ? content.trim() : "";
+  };
+
+  const handleKnowledgeFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const content = await parseTextFile(file);
+      if (!content) {
+        setError("The uploaded file is empty.");
+        return;
+      }
+      setForm((current) => ({ ...current, knowledge: content }));
+      setSuccess("Knowledge text loaded from file.");
+    } catch (fileError) {
+      setError(fileError?.message || "Failed to read the uploaded file.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleEditKnowledgeFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const content = await parseTextFile(file);
+      if (!content) {
+        setError("The uploaded file is empty.");
+        return;
+      }
+      setEditForm((current) => ({ ...current, knowledge: content }));
+      setSuccess("Knowledge text loaded from file.");
+    } catch (fileError) {
+      setError(fileError?.message || "Failed to read the uploaded file.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const generateToken = () => {
@@ -114,6 +175,7 @@ export default function Admin_FacebookConnect() {
         pageAccessToken: form.generatedToken,
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || "enable",
+        knowledge: form.knowledge,
       });
       setStatus(data);
       setSuccess("Facebook Page connection saved successfully.");
@@ -188,6 +250,7 @@ export default function Admin_FacebookConnect() {
       websiteLink: page?.websiteLink || "",
       shoppeLink: page?.shoppeLink || "",
       lazadaLink: page?.lazadaLink || "",
+      knowledge: page?.knowledge || "",
     });
     setError("");
     setSuccess("");
@@ -218,6 +281,7 @@ export default function Admin_FacebookConnect() {
         websiteLink: editForm.websiteLink,
         shoppeLink: editForm.shoppeLink,
         lazadaLink: editForm.lazadaLink,
+        knowledge: editForm.knowledge,
       });
 
       setStatus(data);
@@ -355,6 +419,10 @@ export default function Admin_FacebookConnect() {
                     <span className="block text-[11px] uppercase text-gray-400">Stored Token</span>
                     <span className="text-sm text-gray-800">{page.pageAccessTokenMasked || "********"}</span>
                   </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <span className="block text-[11px] uppercase text-gray-400">Knowledge</span>
+                    <span className="text-sm text-gray-800">{summarizeText(page.knowledge)}</span>
+                  </div>
                 </div>
 
                 {editingPageId === String(page.pageId) && (
@@ -412,6 +480,33 @@ export default function Admin_FacebookConnect() {
                         onChange={onEditChange}
                         placeholder="https://www.lazada.com.ph/shop/your-shop"
                       />
+                      <div className="md:col-span-2">
+                        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Upload Knowledge File
+                        </label>
+                        <input
+                          type="file"
+                          accept=".txt,.md,.markdown,text/plain,text/markdown"
+                          onChange={handleEditKnowledgeFileChange}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                        />
+                        <p className="mt-1 text-[11px] text-gray-400">
+                          Upload a .txt or .md file. The content will be saved to the knowledge field.
+                        </p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Knowledge (Text)
+                        </label>
+                        <textarea
+                          name="knowledge"
+                          value={editForm.knowledge}
+                          onChange={onEditChange}
+                          rows={5}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                          placeholder="Paste or upload knowledge text for the AI assistant"
+                        />
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" type="button" onClick={cancelEditDetails} disabled={savingEdit}>
@@ -511,6 +606,33 @@ export default function Admin_FacebookConnect() {
                 placeholder="Token from Meta page"
                 required
               />
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Upload Knowledge File
+                </label>
+                <input
+                  type="file"
+                  accept=".txt,.md,.markdown,text/plain,text/markdown"
+                  onChange={handleKnowledgeFileChange}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Upload a .txt or .md file. The content will be saved to the knowledge field.
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Knowledge (Text)
+                </label>
+                <textarea
+                  name="knowledge"
+                  value={form.knowledge}
+                  onChange={onChange}
+                  rows={5}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="Paste or upload knowledge text for the AI assistant"
+                />
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" loading={saving}>

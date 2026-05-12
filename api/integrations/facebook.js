@@ -10,6 +10,7 @@ const runtimeConfig = {
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
+  knowledge: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -66,6 +67,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.lazada_link === "string" && record.lazada_link.trim()) ||
     (typeof record.lazadaLink === "string" && record.lazadaLink.trim()) ||
     "";
+  const knowledge =
+    (typeof record.knowledge === "string" && record.knowledge.trim()) ||
+    (typeof record.knowledge_text === "string" && record.knowledge_text.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -79,6 +84,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
     accessMode,
   };
 }
@@ -172,6 +178,7 @@ async function saveSupabasePageToken(payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    knowledge: normalizeText(payload.knowledge),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -253,6 +260,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    knowledge: normalizeText(payload.knowledge),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
@@ -309,6 +317,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     websiteLink: normalizeText(payload.websiteLink) || current.websiteLink,
     shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
     lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
+    knowledge: normalizeText(payload.knowledge) || current.knowledge,
     accessMode: current.accessMode,
   });
 
@@ -342,6 +351,8 @@ async function getConfig(options = {}) {
       supabaseConfig?.shoppeLink || runtimeConfig.shoppeLink || process.env.FB_SHOPPE_LINK || "",
     lazadaLink:
       supabaseConfig?.lazadaLink || runtimeConfig.lazadaLink || process.env.FB_LAZADA_LINK || "",
+    knowledge:
+      supabaseConfig?.knowledge || runtimeConfig.knowledge || process.env.FB_KNOWLEDGE || "",
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: runtimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: runtimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -361,6 +372,7 @@ function saveConfig(payload = {}) {
   if (typeof payload.websiteLink === "string") runtimeConfig.websiteLink = normalizeText(payload.websiteLink);
   if (typeof payload.shoppeLink === "string") runtimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") runtimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
+  if (typeof payload.knowledge === "string") runtimeConfig.knowledge = normalizeText(payload.knowledge);
   if (typeof payload.verifyToken === "string") runtimeConfig.verifyToken = normalizeText(payload.verifyToken);
   if (typeof payload.appSecret === "string") runtimeConfig.appSecret = normalizeText(payload.appSecret);
 }
@@ -414,6 +426,7 @@ async function buildStatus(req) {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    knowledge: config.knowledge || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),

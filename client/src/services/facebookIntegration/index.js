@@ -55,6 +55,7 @@ class FacebookIntegrationService {
       websiteLink: payload.websiteLink || cached.websiteLink || "",
       shoppeLink: payload.shoppeLink || cached.shoppeLink || "",
       lazadaLink: payload.lazadaLink || cached.lazadaLink || "",
+      knowledge: payload.knowledge || cached.knowledge || "",
       accessMode: payload.accessMode || cached.accessMode || "enable",
       hasPageAccessToken: true,
       hasVerifyToken: true,
@@ -76,6 +77,7 @@ class FacebookIntegrationService {
               websiteLink: payload.websiteLink || cached.websiteLink || "",
               shoppeLink: payload.shoppeLink || cached.shoppeLink || "",
               lazadaLink: payload.lazadaLink || cached.lazadaLink || "",
+              knowledge: payload.knowledge || cached.knowledge || "",
               accessMode: payload.accessMode || cached.accessMode || "enable",
               pageAccessTokenMasked: payload.pageAccessToken
                 ? `${String(payload.pageAccessToken).slice(0, 4)}********`
@@ -137,6 +139,7 @@ class FacebookIntegrationService {
           websiteLink: "",
           shoppeLink: "",
           lazadaLink: "",
+          knowledge: "",
           accessMode: "enable",
           hasPageAccessToken: false,
           hasVerifyToken: false,

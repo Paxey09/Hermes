@@ -22,6 +22,7 @@ const fbRuntimeConfig = {
   websiteLink: "",
   shoppeLink: "",
   lazadaLink: "",
+  knowledge: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -114,6 +115,10 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.lazada_link === "string" && record.lazada_link.trim()) ||
     (typeof record.lazadaLink === "string" && record.lazadaLink.trim()) ||
     "";
+  const knowledge =
+    (typeof record.knowledge === "string" && record.knowledge.trim()) ||
+    (typeof record.knowledge_text === "string" && record.knowledge_text.trim()) ||
+    "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
 
@@ -127,6 +132,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
     accessMode,
   };
 }
@@ -220,6 +226,7 @@ async function saveSupabasePageToken(payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    knowledge: normalizeText(payload.knowledge),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -301,6 +308,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     website_link: normalizeText(payload.websiteLink),
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
+    knowledge: normalizeText(payload.knowledge),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
@@ -357,6 +365,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     websiteLink: normalizeText(payload.websiteLink) || current.websiteLink,
     shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
     lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
+    knowledge: normalizeText(payload.knowledge) || current.knowledge,
     accessMode: current.accessMode,
   });
 
@@ -398,6 +407,9 @@ async function getFacebookConfig(options = {}) {
     lazadaLink:
       supabaseConfig?.lazadaLink ||
       (!isPageSpecificLookup ? fbRuntimeConfig.lazadaLink || process.env.FB_LAZADA_LINK || "" : ""),
+    knowledge:
+      supabaseConfig?.knowledge ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.knowledge || process.env.FB_KNOWLEDGE || "" : ""),
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -417,6 +429,7 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.websiteLink === "string") fbRuntimeConfig.websiteLink = normalizeText(payload.websiteLink);
   if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
+  if (typeof payload.knowledge === "string") fbRuntimeConfig.knowledge = normalizeText(payload.knowledge);
   if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = normalizeText(payload.verifyToken);
   if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = normalizeText(payload.appSecret);
 }
@@ -773,6 +786,7 @@ router.get("/admin/status", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    knowledge: config.knowledge || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -803,6 +817,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
   } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
@@ -822,6 +837,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
   });
 
   try {
@@ -836,6 +852,7 @@ router.post("/admin/connect", async (req, res) => {
       websiteLink,
       shoppeLink,
       lazadaLink,
+      knowledge,
     });
   } catch (error) {
     return res.status(500).json({
