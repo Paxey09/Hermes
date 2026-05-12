@@ -551,6 +551,7 @@ function hashCode(str) {
 }
 
 function buildBusinessFallbackReply(context = {}, userText = "") {
+  const knowledge = typeof context.knowledge === "string" ? context.knowledge.trim() : "";
   const productServices = typeof context.productServices === "string" ? context.productServices.trim() : "";
   const businessType = typeof context.businessType === "string" ? context.businessType.trim() : "";
   const pageName = typeof context.pageName === "string" ? context.pageName.trim() : "";
@@ -566,17 +567,19 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
 
   const parts = [];
   if (pageName) {
-    parts.push(langTagalog ? `Ito ang mga ino-offer ng ${pageName}:` : `Here is what ${pageName} offers:`);
+    parts.push(langTagalog ? `Ito ang details ng ${pageName}:` : `Here are the details for ${pageName}:`);
   } else {
-    parts.push(langTagalog ? "Ito ang mga services namin:" : "Here are our services:");
+    parts.push(langTagalog ? "Narito ang details:" : "Here are the details:");
   }
 
-  if (productServices) {
+  if (knowledge) {
+    parts.push(knowledge);
+  } else if (productServices) {
     parts.push(productServices);
   } else if (businessType) {
     parts.push(langTagalog ? `Business type: ${businessType}.` : `Business type: ${businessType}.`);
   } else {
-    parts.push(langTagalog ? "Wala pa kaming nakalistang services ngayon." : "We don't have listed services yet.");
+    parts.push(langTagalog ? "Wala pa kaming nakalistang details ngayon." : "We don't have listed details yet.");
   }
 
   if (productServicePriceRanges) {
@@ -624,6 +627,7 @@ async function generateChatbotReply(input, context = {}) {
         channel: "facebook",
         promptMode: "lite",
         multilingual: true,
+        knowledge: typeof context.knowledge === "string" ? context.knowledge : "",
         businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",
         productServices: typeof context.productServices === "string" ? context.productServices : "",
@@ -1071,6 +1075,7 @@ router.post("/", async (req, res) => {
         const websiteLink = pageConfig.websiteLink || "";
         const shoppeLink = pageConfig.shoppeLink || "";
         const lazadaLink = pageConfig.lazadaLink || "";
+        const knowledge = pageConfig.knowledge || "";
         const memoryPageId = pageConfig.pageId || pageId;
         const history = getConversationHistory(memoryPageId, senderId);
         const requestMessages = [...history, { role: "user", content: incomingText }];
@@ -1083,6 +1088,7 @@ router.post("/", async (req, res) => {
             websiteLink,
             shoppeLink,
             lazadaLink,
+            knowledge,
           })
           : "Please wait for the agent reply.";
 
