@@ -41,7 +41,6 @@ services:
     buildCommand: cd client && npm run build
     staticPublishPath: ./client/dist
     rootDir: .
-    nodeVersion: 20
     envVars:
       - key: NODE_ENV
         value: production
