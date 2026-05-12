@@ -587,7 +587,7 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
 }
 
 async function generateChatbotReply(input, context = {}) {
-  const messages = Array.isArray(input)
+  const baseMessages = Array.isArray(input)
     ? input
     : [
       {
@@ -595,6 +595,17 @@ async function generateChatbotReply(input, context = {}) {
         content: typeof input === "string" ? input : String(input || ""),
       },
     ];
+
+  const knowledgeText = typeof context.knowledge === "string" ? context.knowledge.trim() : "";
+  const messages = knowledgeText
+    ? [
+      {
+        role: "system",
+        content: `Use only the following knowledge when answering. If the answer is not in the knowledge, say you do not have that info yet.\n\nKnowledge:\n${knowledgeText}`,
+      },
+      ...baseMessages,
+    ]
+    : baseMessages;
 
   const chatEndpoint =
     process.env.INTERNAL_CHATBOT_URL ||
@@ -614,7 +625,7 @@ async function generateChatbotReply(input, context = {}) {
         channel: "facebook",
         promptMode: "lite",
         multilingual: true,
-        knowledge: typeof context.knowledge === "string" ? context.knowledge : "",
+        knowledge: knowledgeText,
         pageName: typeof context.pageName === "string" ? context.pageName : "",
         websiteLink: typeof context.websiteLink === "string" ? context.websiteLink : "",
         shoppeLink: typeof context.shoppeLink === "string" ? context.shoppeLink : "",
