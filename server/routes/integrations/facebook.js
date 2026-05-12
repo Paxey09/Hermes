@@ -75,7 +75,7 @@ function setConversationHistory(pageId, senderId, messages = []) {
     : [];
 
   const sliced = normalizedMessages.slice(-CONVERSATION_MAX_MESSAGES);
-  conversationMemory.set(key, {
+        knowledge: normalizeText(payload.knowledge) || "", // Added knowledge field
     updatedAt: Date.now(),
     messages: sliced,
   });
@@ -132,6 +132,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     websiteLink,
     shoppeLink,
     lazadaLink,
+        knowledge: normalizeText(payload.knowledge) || current.knowledge, // Added knowledge field
     knowledge,
     accessMode,
   };
@@ -822,7 +823,7 @@ router.post("/admin/connect", async (req, res) => {
 
   if (!pageAccessToken || !verifyToken) {
     return res.status(400).json({
-      error: "pageAccessToken and verifyToken are required",
+        knowledge,
     });
   }
 
@@ -842,6 +843,7 @@ router.post("/admin/connect", async (req, res) => {
 
   try {
     await saveSupabasePageToken({
+        knowledge, // Added knowledge field
       pageId,
       pageName,
       pageAccessToken,
@@ -856,6 +858,7 @@ router.post("/admin/connect", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
+          knowledge, // Added knowledge field
       error: error.message || "Failed to save Facebook Page token to Supabase",
     });
   }
@@ -936,6 +939,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
   } = req.body || {};
 
   try {
@@ -947,6 +951,7 @@ router.post("/admin/page-details", async (req, res) => {
       websiteLink,
       shoppeLink,
       lazadaLink,
+      knowledge,
     });
   } catch (error) {
     return res.status(400).json({
@@ -963,6 +968,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink,
     shoppeLink,
     lazadaLink,
+    knowledge,
   });
 
   const config = await getFacebookConfig();
@@ -979,6 +985,7 @@ router.post("/admin/page-details", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
+    knowledge: config.knowledge || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
