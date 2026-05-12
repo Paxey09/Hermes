@@ -480,32 +480,40 @@ export default function Admin_FacebookConnect() {
                         onChange={onEditChange}
                         placeholder="https://www.lazada.com.ph/shop/your-shop"
                       />
-                      <div className="md:col-span-2">
-                        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Upload Knowledge File
-                        </label>
-                        <input
-                          type="file"
-                          accept=".txt,.md,.markdown,text/plain,text/markdown"
-                          onChange={handleEditKnowledgeFileChange}
-                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                        />
-                        <p className="mt-1 text-[11px] text-gray-400">
-                          Upload a .txt or .md file. The content will be saved to the knowledge field.
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Knowledge (Text)
-                        </label>
-                        <textarea
-                          name="knowledge"
-                          value={editForm.knowledge}
-                          onChange={onEditChange}
-                          rows={5}
-                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                          placeholder="Paste or upload knowledge text for the AI assistant"
-                        />
+                      <div className="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-gray-900">Knowledge Base</h4>
+                          <span className="text-[11px] uppercase tracking-wide text-gray-400">Text / Markdown</span>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                              Upload Knowledge File
+                            </label>
+                            <input
+                              type="file"
+                              accept=".txt,.md,.markdown,text/plain,text/markdown"
+                              onChange={handleEditKnowledgeFileChange}
+                              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                            />
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              Upload a .txt or .md file. The content will be saved to the knowledge field.
+                            </p>
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                              Knowledge (Text)
+                            </label>
+                            <textarea
+                              name="knowledge"
+                              value={editForm.knowledge}
+                              onChange={onEditChange}
+                              rows={6}
+                              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                              placeholder="Paste or upload knowledge text for the AI assistant"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -606,32 +614,40 @@ export default function Admin_FacebookConnect() {
                 placeholder="Token from Meta page"
                 required
               />
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Upload Knowledge File
-                </label>
-                <input
-                  type="file"
-                  accept=".txt,.md,.markdown,text/plain,text/markdown"
-                  onChange={handleKnowledgeFileChange}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                />
-                <p className="mt-1 text-[11px] text-gray-400">
-                  Upload a .txt or .md file. The content will be saved to the knowledge field.
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Knowledge (Text)
-                </label>
-                <textarea
-                  name="knowledge"
-                  value={form.knowledge}
-                  onChange={onChange}
-                  rows={5}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="Paste or upload knowledge text for the AI assistant"
-                />
+              <div className="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-900">Knowledge Base</h4>
+                  <span className="text-[11px] uppercase tracking-wide text-gray-400">Text / Markdown</span>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Upload Knowledge File
+                    </label>
+                    <input
+                      type="file"
+                      accept=".txt,.md,.markdown,text/plain,text/markdown"
+                      onChange={handleKnowledgeFileChange}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Upload a .txt or .md file. The content will be saved to the knowledge field.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Knowledge (Text)
+                    </label>
+                    <textarea
+                      name="knowledge"
+                      value={form.knowledge}
+                      onChange={onChange}
+                      rows={6}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                      placeholder="Paste or upload knowledge text for the AI assistant"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
