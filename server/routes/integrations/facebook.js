@@ -75,7 +75,7 @@ function setConversationHistory(pageId, senderId, messages = []) {
     : [];
 
   const sliced = normalizedMessages.slice(-CONVERSATION_MAX_MESSAGES);
-        knowledge: normalizeText(payload.knowledge) || "", // Added knowledge field
+  conversationMemory.set(key, {
     updatedAt: Date.now(),
     messages: sliced,
   });
@@ -132,7 +132,6 @@ function getNormalizedSupabaseRecord(record = {}) {
     websiteLink,
     shoppeLink,
     lazadaLink,
-        knowledge: normalizeText(payload.knowledge) || current.knowledge, // Added knowledge field
     knowledge,
     accessMode,
   };
@@ -823,7 +822,7 @@ router.post("/admin/connect", async (req, res) => {
 
   if (!pageAccessToken || !verifyToken) {
     return res.status(400).json({
-        knowledge,
+      error: "pageAccessToken and verifyToken are required",
     });
   }
 
@@ -843,7 +842,6 @@ router.post("/admin/connect", async (req, res) => {
 
   try {
     await saveSupabasePageToken({
-        knowledge, // Added knowledge field
       pageId,
       pageName,
       pageAccessToken,
@@ -858,7 +856,6 @@ router.post("/admin/connect", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
-          knowledge, // Added knowledge field
       error: error.message || "Failed to save Facebook Page token to Supabase",
     });
   }
