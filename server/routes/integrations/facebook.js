@@ -552,15 +552,10 @@ function hashCode(str) {
 
 function buildBusinessFallbackReply(context = {}, userText = "") {
   const knowledge = typeof context.knowledge === "string" ? context.knowledge.trim() : "";
-  const productServices = typeof context.productServices === "string" ? context.productServices.trim() : "";
-  const businessType = typeof context.businessType === "string" ? context.businessType.trim() : "";
   const pageName = typeof context.pageName === "string" ? context.pageName.trim() : "";
   const websiteLink = typeof context.websiteLink === "string" ? context.websiteLink.trim() : "";
   const shoppeLink = typeof context.shoppeLink === "string" ? context.shoppeLink.trim() : "";
   const lazadaLink = typeof context.lazadaLink === "string" ? context.lazadaLink.trim() : "";
-  const productServicePriceRanges = typeof context.productServicePriceRanges === "string"
-    ? context.productServicePriceRanges.trim()
-    : "";
 
   const hasTagalog = /\b(ano|saan|may|wala|pa|po|kayo|kami|nyo|niyo|salamat|magkano)\b/i.test(userText);
   const langTagalog = hasTagalog;
@@ -574,16 +569,8 @@ function buildBusinessFallbackReply(context = {}, userText = "") {
 
   if (knowledge) {
     parts.push(knowledge);
-  } else if (productServices) {
-    parts.push(productServices);
-  } else if (businessType) {
-    parts.push(langTagalog ? `Business type: ${businessType}.` : `Business type: ${businessType}.`);
   } else {
-    parts.push(langTagalog ? "Wala pa kaming nakalistang details ngayon." : "We don't have listed details yet.");
-  }
-
-  if (productServicePriceRanges) {
-    parts.push(`Price range: ${productServicePriceRanges}`);
+    parts.push(langTagalog ? "Wala pa kaming nakalistang knowledge ngayon." : "We don't have listed knowledge yet.");
   }
 
   if (websiteLink) {
@@ -628,11 +615,7 @@ async function generateChatbotReply(input, context = {}) {
         promptMode: "lite",
         multilingual: true,
         knowledge: typeof context.knowledge === "string" ? context.knowledge : "",
-        businessType: typeof context.businessType === "string" ? context.businessType : "",
         pageName: typeof context.pageName === "string" ? context.pageName : "",
-        productServices: typeof context.productServices === "string" ? context.productServices : "",
-        productServicePriceRanges:
-          typeof context.productServicePriceRanges === "string" ? context.productServicePriceRanges : "",
         websiteLink: typeof context.websiteLink === "string" ? context.websiteLink : "",
         shoppeLink: typeof context.shoppeLink === "string" ? context.shoppeLink : "",
         lazadaLink: typeof context.lazadaLink === "string" ? context.lazadaLink : "",
@@ -1068,10 +1051,7 @@ router.post("/", async (req, res) => {
       try {
         const pageConfig = await getCachedPageConfig(pageId);
         const chatbotEnabled = pageConfig.accessMode !== "disable";
-        const businessType = pageConfig.businessType || "";
         const pageName = pageConfig.pageName || "";
-        const productServices = pageConfig.productServices || "";
-        const productServicePriceRanges = pageConfig.productServicePriceRanges || "";
         const websiteLink = pageConfig.websiteLink || "";
         const shoppeLink = pageConfig.shoppeLink || "";
         const lazadaLink = pageConfig.lazadaLink || "";
@@ -1081,10 +1061,7 @@ router.post("/", async (req, res) => {
         const requestMessages = [...history, { role: "user", content: incomingText }];
         const replyText = chatbotEnabled
           ? await generateChatbotReply(requestMessages, {
-            businessType,
             pageName,
-            productServices,
-            productServicePriceRanges,
             websiteLink,
             shoppeLink,
             lazadaLink,
