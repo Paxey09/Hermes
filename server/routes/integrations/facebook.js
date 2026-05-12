@@ -514,6 +514,8 @@ function compactFacebookReply(rawText) {
   cleaned = cleaned.replace(/^"|"$/g, "");
   cleaned = cleaned.replace(/\s+/g, " ").trim();
 
+  cleaned = formatListText(cleaned);
+
   const maxChars = parseInt(process.env.FB_REPLY_MAX_CHARS, 10) || 1500;
   if (cleaned.length > maxChars) {
     const short = cleaned.slice(0, maxChars);
@@ -539,6 +541,22 @@ function compactFacebookReply(rawText) {
   }
 
   return final;
+}
+
+function formatListText(text) {
+  if (!text) return text;
+  let formatted = text;
+
+  if (/\s\*\s/.test(formatted) || /\*/.test(formatted)) {
+    formatted = formatted.replace(/\s*\*\s*/g, "\n• ");
+  }
+
+  formatted = formatted.replace(/\s*•\s*/g, "\n• ");
+  formatted = formatted.replace(/\n{3,}/g, "\n\n");
+  formatted = formatted.replace(/^\s*\n+/, "");
+  formatted = formatted.replace(/^\s*•\s*/g, "• ");
+
+  return formatted.trim();
 }
 
 function hashCode(str) {
