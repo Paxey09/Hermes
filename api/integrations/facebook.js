@@ -19,6 +19,7 @@ const runtimeConfig = {
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServerKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const supabaseClient = supabaseUrl && supabaseServerKey ? createClient(supabaseUrl, supabaseServerKey) : null;
+const FB_GRAPH_API_BASE = "https://graph.facebook.com/v22.0";
 
 function normalizeAccessMode(value) {
   return typeof value === "string" && value.trim().toLowerCase() === "disable" ? "disable" : "enable";
@@ -189,6 +190,104 @@ async function getSupabaseFacebookPagesByWorkspaceId(workspaceId) {
   }
 
   return Array.isArray(data) ? data.map(getNormalizedSupabaseRecord) : [];
+}
+
+function buildGraphUrl(pathname, params = {}) {
+  const url = new URL(`${FB_GRAPH_API_BASE}/${pathname}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
+}
+
+async function fetchFacebookPageConversations(page = {}, options = {}) {
+  const normalizedPageId = normalizePageId(page.pageId);
+  const pageAccessToken = normalizeText(page.pageAccessToken);
+
+  if (!normalizedPageId || !pageAccessToken) {
+    return [];
+  }
+
+  const conversationLimit = Math.min(25, Math.max(1, Number(options.conversationLimit) || 10));
+  const messageLimit = Math.min(50, Math.max(1, Number(options.messageLimit) || 15));
+
+  const conversationsUrl = buildGraphUrl(`${encodeURIComponent(normalizedPageId)}/conversations`, {
+    fields: "id,updated_time,snippet,message_count,participants.limit(10){id,name}",
+    limit: conversationLimit,
+    access_token: pageAccessToken,
+  });
+
+  const conversationsResponse = await fetch(conversationsUrl, { method: "GET" });
+  if (!conversationsResponse.ok) {
+    const details = await conversationsResponse.text();
+    throw new Error(`Facebook Conversations API error (${conversationsResponse.status}): ${details}`);
+  }
+
+  const conversationsPayload = await conversationsResponse.json();
+  const conversations = Array.isArray(conversationsPayload?.data) ? conversationsPayload.data : [];
+
+  const threads = await Promise.all(
+    conversations.map(async (conversation) => {
+      const conversationId = normalizeText(conversation?.id);
+      if (!conversationId) return null;
+
+      const participants = Array.isArray(conversation?.participants?.data)
+        ? conversation.participants.data
+        : [];
+      const customerParticipant = participants.find(
+        (participant) => normalizePageId(participant?.id) !== normalizedPageId
+      );
+
+      const messagesUrl = buildGraphUrl(`${encodeURIComponent(conversationId)}/messages`, {
+        fields: "id,message,created_time,from{id,name}",
+        limit: messageLimit,
+        access_token: pageAccessToken,
+      });
+
+      const messagesResponse = await fetch(messagesUrl, { method: "GET" });
+      if (!messagesResponse.ok) {
+        const details = await messagesResponse.text();
+        throw new Error(`Facebook Messages API error (${messagesResponse.status}): ${details}`);
+      }
+
+      const messagesPayload = await messagesResponse.json();
+      const rawMessages = Array.isArray(messagesPayload?.data) ? messagesPayload.data : [];
+      const ordered = rawMessages.slice().reverse();
+
+      const messages = ordered
+        .map((msg) => {
+          const text = normalizeText(msg?.message);
+          if (!text) return null;
+
+          const fromId = normalizePageId(msg?.from?.id);
+          const fromName = normalizeText(msg?.from?.name) || "Unknown";
+
+          return {
+            id: normalizeText(msg?.id),
+            text,
+            fromId,
+            fromName,
+            createdTime: normalizeText(msg?.created_time),
+            isPageMessage: fromId === normalizedPageId,
+          };
+        })
+        .filter(Boolean);
+
+      return {
+        threadId: conversationId,
+        participantId: normalizePageId(customerParticipant?.id),
+        participantName: normalizeText(customerParticipant?.name) || "Facebook User",
+        updatedTime: normalizeText(conversation?.updated_time),
+        snippet: normalizeText(conversation?.snippet),
+        messageCount: Number(conversation?.message_count) || messages.length,
+        messages,
+      };
+    })
+  );
+
+  return threads.filter(Boolean);
 }
 
 async function saveSupabasePageToken(payload = {}) {
@@ -538,6 +637,60 @@ export default async function handler(req, res) {
 
       const pages = await getSupabaseFacebookPagesByWorkspaceId(workspaceId);
       return res.status(200).json({ workspaceId, pages, count: pages.length });
+    }
+
+    if (action === "clientInbox") {
+      const workspaceId = normalizeText(req.body?.workspaceId);
+      const requestedPageId = normalizePageId(req.body?.pageId);
+
+      if (!workspaceId) {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
+      const pages = await getSupabaseFacebookPagesByWorkspaceId(workspaceId);
+      if (pages.length === 0) {
+        return res.status(200).json({ workspaceId, pageId: "", pages: [], threads: [], count: 0 });
+      }
+
+      const activePage =
+        pages.find((page) => normalizePageId(page.pageId) === requestedPageId) ||
+        pages[0];
+
+      if (!activePage?.pageId) {
+        return res.status(200).json({ workspaceId, pageId: "", pages: [], threads: [], count: 0 });
+      }
+
+      try {
+        const threads = await fetchFacebookPageConversations(activePage, {
+          conversationLimit: req.body?.conversationLimit,
+          messageLimit: req.body?.messageLimit,
+        });
+
+        return res.status(200).json({
+          workspaceId,
+          pageId: activePage.pageId,
+          pages: pages.map((page) => ({
+            pageId: page.pageId,
+            pageName: page.pageName,
+            accessMode: page.accessMode,
+          })),
+          threads,
+          count: threads.length,
+        });
+      } catch (error) {
+        return res.status(502).json({
+          error: error.message || "Failed to load Facebook inbox conversations",
+          workspaceId,
+          pageId: activePage.pageId,
+          pages: pages.map((page) => ({
+            pageId: page.pageId,
+            pageName: page.pageName,
+            accessMode: page.accessMode,
+          })),
+          threads: [],
+          count: 0,
+        });
+      }
     }
 
     return res.status(400).json({ error: "Unknown action" });

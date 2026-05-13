@@ -276,6 +276,41 @@ class FacebookIntegrationService {
       }
     }
   }
+
+  async getClientInboxByWorkspaceId(workspaceId, pageId = "") {
+    const normalizedWorkspaceId = typeof workspaceId === "string" ? workspaceId.trim() : "";
+    const normalizedPageId = typeof pageId === "string" ? pageId.trim() : "";
+
+    if (!normalizedWorkspaceId) {
+      return { workspaceId: "", pageId: "", pages: [], threads: [], count: 0 };
+    }
+
+    const query = new URLSearchParams({ workspaceId: normalizedWorkspaceId });
+    if (normalizedPageId) {
+      query.set("pageId", normalizedPageId);
+    }
+
+    try {
+      return await this.request(`/webhooks/facebook/client/inbox?${query.toString()}`, {
+        method: "GET",
+      });
+    } catch (primaryError) {
+      try {
+        return await this.request("/integrations/facebook", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "clientInbox",
+            workspaceId: normalizedWorkspaceId,
+            pageId: normalizedPageId,
+          }),
+        });
+      } catch (fallbackError) {
+        const primaryMessage = primaryError?.message || "Primary client inbox endpoint failed.";
+        const fallbackMessage = fallbackError?.message || "Fallback client inbox endpoint failed.";
+        throw new Error(`${primaryMessage} ${fallbackMessage}`.trim());
+      }
+    }
+  }
 }
 
 export default new FacebookIntegrationService();
