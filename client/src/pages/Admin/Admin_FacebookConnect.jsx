@@ -23,7 +23,7 @@ const EMPTY_FORM = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
-  connectedProfileName: "",
+  connectedWorkspaceId: "",
   generatedToken: "",
 };
 
@@ -36,7 +36,7 @@ const EMPTY_EDIT_FORM = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
-  connectedProfileName: "",
+  connectedWorkspaceId: "",
 };
 
 export default function Admin_FacebookConnect() {
@@ -50,31 +50,30 @@ export default function Admin_FacebookConnect() {
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
-  const [profiles, setProfiles] = useState([]);
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
 
   const connectedPages = useMemo(
     () => (Array.isArray(status?.connectedPages) ? status.connectedPages : []),
     [status]
   );
 
-  const profileOptions = useMemo(() => {
-    const options = [{ value: "", label: loadingProfiles ? "Loading profiles..." : "Not linked" }];
-    const entries = Array.isArray(profiles) ? profiles : [];
-    const filtered = entries
-      .filter((profile) => profile?.full_name)
-      .filter((profile) => !profile?.role || profile.role === "Client")
-      .sort((a, b) => String(a.full_name).localeCompare(String(b.full_name)));
+  const workspaceOptions = useMemo(() => {
+    const options = [{ value: "", label: loadingWorkspaces ? "Loading workspaces..." : "Not linked" }];
+    const entries = Array.isArray(workspaces) ? workspaces : [];
+    const sorted = entries
+      .filter((ws) => ws?.id && ws?.name)
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-    filtered.forEach((profile) => {
+    sorted.forEach((ws) => {
       options.push({
-        value: String(profile.full_name),
-        label: profile.full_name,
+        value: String(ws.id),
+        label: `${ws.name}${ws.workspace_type ? ` (${ws.workspace_type})` : ""}`,
       });
     });
 
     return options;
-  }, [profiles, loadingProfiles]);
+  }, [workspaces, loadingWorkspaces]);
 
   const loadStatus = async () => {
     try {
@@ -93,7 +92,7 @@ export default function Admin_FacebookConnect() {
         shoppeLink: data.shoppeLink || current.shoppeLink,
         lazadaLink: data.lazadaLink || current.lazadaLink,
         knowledge: data.knowledge || current.knowledge,
-        connectedProfileName: data.connectedProfileName || current.connectedProfileName,
+        connectedWorkspaceId: data.connectedWorkspaceId || current.connectedWorkspaceId,
       }));
     } catch (loadError) {
       setError(loadError.message || "Failed to load Facebook integration status.");
@@ -109,30 +108,30 @@ export default function Admin_FacebookConnect() {
   useEffect(() => {
     let mounted = true;
 
-    async function loadProfiles() {
+    async function loadWorkspaces() {
       try {
-        setLoadingProfiles(true);
-        const { data, error: profileError } = await db.getAllProfiles();
-        if (profileError) {
-          throw profileError;
+        setLoadingWorkspaces(true);
+        const { data, error: workspaceError } = await db.getAllWorkspaces();
+        if (workspaceError) {
+          throw workspaceError;
         }
 
         if (mounted) {
-          setProfiles(Array.isArray(data) ? data : []);
+          setWorkspaces(Array.isArray(data) ? data : []);
         }
-      } catch (profileLoadError) {
+      } catch (workspaceLoadError) {
         if (mounted) {
-          setProfiles([]);
-          setError(profileLoadError.message || "Failed to load profiles.");
+          setWorkspaces([]);
+          setError(workspaceLoadError.message || "Failed to load workspaces.");
         }
       } finally {
         if (mounted) {
-          setLoadingProfiles(false);
+          setLoadingWorkspaces(false);
         }
       }
     }
 
-    loadProfiles();
+    loadWorkspaces();
 
     return () => {
       mounted = false;
@@ -233,7 +232,7 @@ export default function Admin_FacebookConnect() {
         verifyToken: status?.verifyToken || facebookIntegrationService.getStoredTestToken(status || {}),
         accessMode: status?.accessMode || "enable",
         knowledge: form.knowledge,
-        connectedProfileName: form.connectedProfileName,
+        connectedWorkspaceId: form.connectedWorkspaceId,
       });
       setStatus(data);
       setSuccess("Facebook Page connection saved successfully.");
@@ -309,7 +308,7 @@ export default function Admin_FacebookConnect() {
       shoppeLink: page?.shoppeLink || "",
       lazadaLink: page?.lazadaLink || "",
       knowledge: page?.knowledge || "",
-      connectedProfileName: page?.connectedProfileName || "",
+      connectedWorkspaceId: page?.connectedWorkspaceId || "",
     });
     setError("");
     setSuccess("");
@@ -341,7 +340,7 @@ export default function Admin_FacebookConnect() {
         shoppeLink: editForm.shoppeLink,
         lazadaLink: editForm.lazadaLink,
         knowledge: editForm.knowledge,
-        connectedProfileName: editForm.connectedProfileName,
+        connectedWorkspaceId: editForm.connectedWorkspaceId,
       });
 
       setStatus(data);
@@ -472,8 +471,8 @@ export default function Admin_FacebookConnect() {
                     <span className="text-sm text-gray-800">{displayValue(page.lazadaLink)}</span>
                   </div>
                   <div>
-                    <span className="block text-[11px] uppercase text-gray-400">Connected Profile</span>
-                    <span className="text-sm text-gray-800">{displayValue(page.connectedProfileName)}</span>
+                    <span className="block text-[11px] uppercase text-gray-400">Connected Workspace</span>
+                    <span className="text-sm text-gray-800">{displayValue(page.connectedWorkspaceId)}</span>
                   </div>
                   <div>
                     <span className="block text-[11px] uppercase text-gray-400">Webhook Subscription</span>
@@ -545,11 +544,11 @@ export default function Admin_FacebookConnect() {
                         placeholder="https://www.lazada.com.ph/shop/your-shop"
                       />
                       <Select
-                        label="Connect to Profile"
-                        name="connectedProfileName"
-                        value={editForm.connectedProfileName}
+                        label="Connect to Workspace"
+                        name="connectedWorkspaceId"
+                        value={editForm.connectedWorkspaceId}
                         onChange={onEditChange}
-                        options={profileOptions}
+                        options={workspaceOptions}
                       />
                       <div className="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
                         <div className="mb-3 flex items-center justify-between">
@@ -677,11 +676,11 @@ export default function Admin_FacebookConnect() {
                 placeholder="https://www.lazada.com.ph/shop/your-shop"
               />
               <Select
-                label="Connect to Profile"
-                name="connectedProfileName"
-                value={form.connectedProfileName}
+                label="Connect to Workspace"
+                name="connectedWorkspaceId"
+                value={form.connectedWorkspaceId}
                 onChange={onChange}
-                options={profileOptions}
+                options={workspaceOptions}
               />
               <Input
                 label="Generated Token"

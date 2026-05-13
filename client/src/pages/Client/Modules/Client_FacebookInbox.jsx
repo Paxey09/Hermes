@@ -4,9 +4,9 @@ import facebookIntegrationService from "../../../services/facebookIntegration";
 
 export default function Client_FacebookInbox() {
   const context = useOutletContext() || {};
-  const profileName =
-    typeof context?.profile?.full_name === "string"
-      ? context.profile.full_name.trim()
+  const workspaceId =
+    typeof context?.workspace?.id === "string"
+      ? context.workspace.id.trim()
       : "";
 
   const [pages, setPages] = useState([]);
@@ -17,7 +17,7 @@ export default function Client_FacebookInbox() {
     let mounted = true;
 
     async function loadPages() {
-      if (!profileName) {
+      if (!workspaceId) {
         if (mounted) {
           setPages([]);
           setLoading(false);
@@ -29,7 +29,7 @@ export default function Client_FacebookInbox() {
       setError("");
 
       try {
-        const data = await facebookIntegrationService.getClientPagesByProfileName(profileName);
+        const data = await facebookIntegrationService.getClientPagesByWorkspaceId(workspaceId);
         if (!mounted) return;
         setPages(Array.isArray(data?.pages) ? data.pages : []);
       } catch (err) {
@@ -48,20 +48,20 @@ export default function Client_FacebookInbox() {
     return () => {
       mounted = false;
     };
-  }, [profileName]);
+  }, [workspaceId]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Facebook Inbox</h1>
         <p className="text-sm text-gray-500">
-          Showing conversations for {profileName || "your profile"}.
+          Showing conversations for your workspace.
         </p>
       </div>
 
-      {!profileName && (
+      {!workspaceId && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Your profile does not have a full name yet. Ask an admin to update it so your Facebook inbox can load.
+          Your workspace ID is not available yet. Contact your admin if this persists.
         </div>
       )}
 
@@ -74,7 +74,7 @@ export default function Client_FacebookInbox() {
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-900">Connected Facebook Pages</h2>
-          <p className="text-xs text-gray-500">Pages linked to your profile in Admin Facebook Connect.</p>
+          <p className="text-xs text-gray-500">Pages linked to your workspace in Admin Facebook Connect.</p>
         </div>
         <div className="divide-y divide-gray-100">
           {loading && (
@@ -83,7 +83,7 @@ export default function Client_FacebookInbox() {
 
           {!loading && pages.length === 0 && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              No Facebook Pages are linked to your profile yet.
+              No Facebook Pages are linked to your workspace yet.
             </div>
           )}
 

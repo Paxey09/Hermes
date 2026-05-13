@@ -79,7 +79,7 @@ class FacebookIntegrationService {
               shoppeLink: payload.shoppeLink || cached.shoppeLink || "",
               lazadaLink: payload.lazadaLink || cached.lazadaLink || "",
               knowledge: payload.knowledge || cached.knowledge || "",
-              connectedProfileName: payload.connectedProfileName || cached.connectedProfileName || "",
+              connectedWorkspaceId: payload.connectedWorkspaceId || cached.connectedWorkspaceId || "",
               accessMode: payload.accessMode || cached.accessMode || "enable",
               pageAccessTokenMasked: payload.pageAccessToken
                 ? `${String(payload.pageAccessToken).slice(0, 4)}********`
@@ -252,22 +252,22 @@ class FacebookIntegrationService {
     }
   }
 
-  async getClientPagesByProfileName(profileName) {
-    const normalized = typeof profileName === "string" ? profileName.trim() : "";
+  async getClientPagesByWorkspaceId(workspaceId) {
+    const normalized = typeof workspaceId === "string" ? workspaceId.trim() : "";
     if (!normalized) {
-      return { profileName: "", pages: [], count: 0 };
+      return { workspaceId: "", pages: [], count: 0 };
     }
 
     try {
       return await this.request(
-        `/webhooks/facebook/client/pages?profileName=${encodeURIComponent(normalized)}`,
+        `/webhooks/facebook/client/pages?workspaceId=${encodeURIComponent(normalized)}`,
         { method: "GET" }
       );
     } catch (primaryError) {
       try {
         return await this.request("/integrations/facebook", {
           method: "POST",
-          body: JSON.stringify({ action: "clientPages", profileName: normalized }),
+          body: JSON.stringify({ action: "clientPages", workspaceId: normalized }),
         });
       } catch (fallbackError) {
         const primaryMessage = primaryError?.message || "Primary client pages endpoint failed.";

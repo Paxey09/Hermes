@@ -23,7 +23,7 @@ const fbRuntimeConfig = {
   shoppeLink: "",
   lazadaLink: "",
   knowledge: "",
-  connectedProfileName: "",
+  connectedWorkspaceId: "",
   verifyToken: "",
   appSecret: "",
 };
@@ -120,9 +120,9 @@ function getNormalizedSupabaseRecord(record = {}) {
     (typeof record.knowledge === "string" && record.knowledge.trim()) ||
     (typeof record.knowledge_text === "string" && record.knowledge_text.trim()) ||
     "";
-  const connectedProfileName =
-    (typeof record.connected_profile_name === "string" && record.connected_profile_name.trim()) ||
-    (typeof record.connectedProfileName === "string" && record.connectedProfileName.trim()) ||
+  const connectedWorkspaceId =
+    (typeof record.workspace_id === "string" && record.workspace_id.trim()) ||
+    (typeof record.connectedWorkspaceId === "string" && record.connectedWorkspaceId.trim()) ||
     "";
   const rawId = record.page_id ?? record.fb_page_id ?? record.id;
   const accessMode = normalizeAccessMode(record.access_mode ?? record.accessMode);
@@ -138,7 +138,7 @@ function getNormalizedSupabaseRecord(record = {}) {
     shoppeLink,
     lazadaLink,
     knowledge,
-    connectedProfileName,
+    connectedWorkspaceId,
     accessMode,
   };
 }
@@ -215,24 +215,24 @@ async function getSupabaseFacebookPages() {
   return Array.isArray(data) ? data.map(getNormalizedSupabaseRecord) : [];
 }
 
-async function getSupabaseFacebookPagesByProfileName(profileName) {
+async function getSupabaseFacebookPagesByWorkspaceId(workspaceId) {
   if (!supabaseClient) {
     return [];
   }
 
-  const normalizedName = normalizeText(profileName);
-  if (!normalizedName) {
+  const normalizedId = normalizeText(workspaceId);
+  if (!normalizedId) {
     return [];
   }
 
   const { data, error } = await supabaseClient
     .from("fb_pages")
     .select("*")
-    .eq("connected_profile_name", normalizedName)
+    .eq("workspace_id", normalizedId)
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Failed to read fb_pages by connected_profile_name", { message: error.message });
+    console.error("Failed to read fb_pages by workspace_id", { message: error.message });
     return [];
   }
 
@@ -257,7 +257,7 @@ async function saveSupabasePageToken(payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
-    connected_profile_name: normalizeText(payload.connectedProfileName),
+    workspace_id: normalizeText(payload.connectedWorkspaceId),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -398,7 +398,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     shoppeLink: normalizeText(payload.shoppeLink) || current.shoppeLink,
     lazadaLink: normalizeText(payload.lazadaLink) || current.lazadaLink,
     knowledge: normalizeText(payload.knowledge) || current.knowledge,
-    connectedProfileName: normalizeText(payload.connectedProfileName) || current.connectedProfileName,
+    connectedWorkspaceId: normalizeText(payload.connectedWorkspaceId) || current.connectedWorkspaceId,
     accessMode: current.accessMode,
   });
 
@@ -443,9 +443,9 @@ async function getFacebookConfig(options = {}) {
     knowledge:
       supabaseConfig?.knowledge ||
       (!isPageSpecificLookup ? fbRuntimeConfig.knowledge || process.env.FB_KNOWLEDGE || "" : ""),
-    connectedProfileName:
-      supabaseConfig?.connectedProfileName ||
-      (!isPageSpecificLookup ? fbRuntimeConfig.connectedProfileName || "" : ""),
+    connectedWorkspaceId:
+      supabaseConfig?.connectedWorkspaceId ||
+      (!isPageSpecificLookup ? fbRuntimeConfig.connectedWorkspaceId || "" : ""),
     accessMode: normalizeAccessMode(supabaseConfig?.accessMode),
     verifyToken: fbRuntimeConfig.verifyToken || process.env.FB_VERIFY_TOKEN || "",
     appSecret: fbRuntimeConfig.appSecret || process.env.FB_APP_SECRET || "",
@@ -466,8 +466,8 @@ function saveRuntimeConfig(payload = {}) {
   if (typeof payload.shoppeLink === "string") fbRuntimeConfig.shoppeLink = normalizeText(payload.shoppeLink);
   if (typeof payload.lazadaLink === "string") fbRuntimeConfig.lazadaLink = normalizeText(payload.lazadaLink);
   if (typeof payload.knowledge === "string") fbRuntimeConfig.knowledge = normalizeText(payload.knowledge);
-  if (typeof payload.connectedProfileName === "string") {
-    fbRuntimeConfig.connectedProfileName = normalizeText(payload.connectedProfileName);
+  if (typeof payload.connectedWorkspaceId === "string") {
+    fbRuntimeConfig.connectedWorkspaceId = normalizeText(payload.connectedWorkspaceId);
   }
   if (typeof payload.verifyToken === "string") fbRuntimeConfig.verifyToken = normalizeText(payload.verifyToken);
   if (typeof payload.appSecret === "string") fbRuntimeConfig.appSecret = normalizeText(payload.appSecret);
@@ -1064,16 +1064,16 @@ router.post("/admin/page-details", async (req, res) => {
 });
 
 router.get("/client/pages", async (req, res) => {
-  const profileName = normalizeText(req.query.profileName);
+  const workspaceId = normalizeText(req.query.workspaceId);
 
-  if (!profileName) {
-    return res.status(400).json({ error: "profileName is required" });
+  if (!workspaceId) {
+    return res.status(400).json({ error: "workspaceId is required" });
   }
 
-  const pages = await getSupabaseFacebookPagesByProfileName(profileName);
+  const pages = await getSupabaseFacebookPagesByWorkspaceId(workspaceId);
 
   return res.status(200).json({
-    profileName,
+    workspaceId,
     pages,
     count: pages.length,
   });
