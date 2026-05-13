@@ -69,6 +69,14 @@ export const db = {
     return { data, error };
   },
 
+  async getAllWorkspaces() {
+    const { data, error } = await supabase
+      .from('workspaces')
+      .select('*')
+      .order('name', { ascending: true });
+    return { data, error };
+  },
+
   // Customers (CRM)
   async getCustomers(filters = {}) {
     let query = supabase
