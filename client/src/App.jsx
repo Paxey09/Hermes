@@ -277,7 +277,7 @@ function App() {
         <Route
           path="Inbox/Facebook"
           element={
-            <GuardedClientModule moduleKey="facebook_inbox">
+            <GuardedClientModule moduleKey="inbox">
               <ClientFacebookInbox />
             </GuardedClientModule>
           }
