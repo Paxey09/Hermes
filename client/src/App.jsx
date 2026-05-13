@@ -72,7 +72,31 @@ const PlaceholderPage = ({ title }) => (
 );
 
 const ClientTasks = () => <PlaceholderPage title="Tasks" />;
-const ClientInbox = () => <PlaceholderPage title="Inbox" />;
+const ClientInbox = () => {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Inbox</h1>
+        <p className="text-sm text-gray-500">Select an inbox to view conversations</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <a
+          href="/Client/Inbox/Facebook"
+          className="rounded-lg border border-gray-200 bg-white p-6 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📱</div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Facebook Inbox</h3>
+              <p className="text-sm text-gray-500">View Facebook page conversations</p>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  );
+};
 const ClientRevenue = () => <PlaceholderPage title="Revenue" />;
 const ClientAnalytics = () => <PlaceholderPage title="Analytics" />;
 const ClientDataAnalytics = () => <PlaceholderPage title="Data Analytics" />;
