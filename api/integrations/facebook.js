@@ -209,7 +209,7 @@ async function saveSupabasePageToken(payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
-    connected_profile_name: normalizeText(payload.connectedProfileName),
+    workspace_id: normalizeText(payload.connectedWorkspaceId),
     access_mode: normalizeAccessMode(payload.accessMode),
   };
 
@@ -292,7 +292,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
-    connected_profile_name: normalizeText(payload.connectedProfileName),
+    workspace_id: normalizeText(payload.connectedWorkspaceId),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];

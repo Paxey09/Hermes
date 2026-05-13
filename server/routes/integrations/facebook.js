@@ -340,7 +340,7 @@ async function updateSupabasePageDetails(pageId, payload = {}) {
     shoppe_link: normalizeText(payload.shoppeLink),
     lazada_link: normalizeText(payload.lazadaLink),
     knowledge: normalizeText(payload.knowledge),
-    connected_profile_name: normalizeText(payload.connectedProfileName),
+    workspace_id: normalizeText(payload.connectedWorkspaceId),
   };
 
   const matchColumns = ["id", "page_id", "fb_page_id"];
@@ -842,7 +842,7 @@ router.get("/admin/status", async (req, res) => {
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
     knowledge: config.knowledge || null,
-    connectedProfileName: config.connectedProfileName || null,
+    connectedWorkspaceId: config.connectedWorkspaceId || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -874,7 +874,7 @@ router.post("/admin/connect", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
-    connectedProfileName,
+    connectedWorkspaceId,
   } = req.body || {};
 
   if (!pageAccessToken || !verifyToken) {
@@ -895,7 +895,7 @@ router.post("/admin/connect", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
-    connectedProfileName,
+    connectedWorkspaceId,
   });
 
   try {
@@ -911,7 +911,7 @@ router.post("/admin/connect", async (req, res) => {
       shoppeLink,
       lazadaLink,
       knowledge,
-      connectedProfileName,
+      connectedWorkspaceId,
     });
   } catch (error) {
     return res.status(500).json({
@@ -933,7 +933,7 @@ router.post("/admin/connect", async (req, res) => {
     websiteLink: config.websiteLink || null,
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
-    connectedProfileName: config.connectedProfileName || null,
+    connectedWorkspaceId: config.connectedWorkspaceId || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
@@ -997,7 +997,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
-    connectedProfileName,
+    connectedWorkspaceId,
   } = req.body || {};
 
   try {
@@ -1010,7 +1010,7 @@ router.post("/admin/page-details", async (req, res) => {
       shoppeLink,
       lazadaLink,
       knowledge,
-      connectedProfileName,
+      connectedWorkspaceId,
     });
   } catch (error) {
     return res.status(400).json({
@@ -1028,7 +1028,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink,
     lazadaLink,
     knowledge,
-    connectedProfileName,
+    connectedWorkspaceId,
   });
 
   const config = await getFacebookConfig();
@@ -1046,7 +1046,7 @@ router.post("/admin/page-details", async (req, res) => {
     shoppeLink: config.shoppeLink || null,
     lazadaLink: config.lazadaLink || null,
     knowledge: config.knowledge || null,
-    connectedProfileName: config.connectedProfileName || null,
+    connectedWorkspaceId: config.connectedWorkspaceId || null,
     hasPageAccessToken: Boolean(config.pageAccessToken),
     hasVerifyToken: Boolean(config.verifyToken),
     hasAppSecret: Boolean(config.appSecret),
